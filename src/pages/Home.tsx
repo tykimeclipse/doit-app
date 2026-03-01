@@ -13,8 +13,7 @@ export default function Home() {
 
   useEffect(() => {
     const fetchAll = async () => {
-      const { data: { user } } = await supabase.auth.getUser()
-
+      await supabase.auth.getUser()
       const { data: todoData } = await supabase
         .from('todos')
         .select('*')
