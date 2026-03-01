@@ -5,7 +5,6 @@ export default function Home() {
   const [todos, setTodos] = useState<any[]>([])
   const [habits, setHabits] = useState<any[]>([])
   const [logs, setLogs] = useState<any[]>([])
-  const [userEmail, setUserEmail] = useState('')
 
   const today = new Date().toISOString().split('T')[0]
   const todayLabel = new Date().toLocaleDateString('ko-KR', {
@@ -15,7 +14,6 @@ export default function Home() {
   useEffect(() => {
     const fetchAll = async () => {
       const { data: { user } } = await supabase.auth.getUser()
-      if (user) setUserEmail(user.email ?? '')
 
       const { data: todoData } = await supabase
         .from('todos')
@@ -39,7 +37,6 @@ export default function Home() {
     fetchAll()
   }, [])
 
-  const completedTodos = todos.filter(t => t.is_completed).length
   const habitDoneCount = logs.length
   const habitRate = habits.length > 0 ? Math.round((habitDoneCount / habits.length) * 100) : 0
 
