@@ -13,26 +13,17 @@ export default function Home() {
 
   useEffect(() => {
     const fetchAll = async () => {
-      const { data: todoData } = await supabase
-        .from('todos')
-        .select('*')
-        .eq('is_completed', false)
-        .order('position', { ascending: true })
+      const [{ data: todoData }, { data: habitData }, { data: logData }] = await Promise.all([
+        supabase.from('todos').select('*').eq('is_completed', false).order('position', { ascending: true }),
+        supabase.from('habits').select('*').order('position', { ascending: true }),
+        supabase.from('habit_logs').select('*').eq('date', today)
+      ])
       if (todoData) setTodos(todoData)
-
-      const { data: habitData } = await supabase
-        .from('habits')
-        .select('*')
-        .order('position', { ascending: true })
       if (habitData) setHabits(habitData)
-
-      const { data: logData } = await supabase
-        .from('habit_logs')
-        .select('*')
-        .eq('date', today)
       if (logData) setLogs(logData)
     }
     fetchAll()
+    
   }, [])
 
   const habitDoneCount = logs.length

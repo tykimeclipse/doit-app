@@ -104,28 +104,35 @@ export default function Habit() {
     if (data) setLogs(data)
   }
 
-  const fetchStreaks = async () => {
-  const { data: { user } } = await supabase.auth.getUser()
-  const { data: habitData } = await supabase.from('habits').select('id')
-  if (!habitData || !user) return
-
-  const results = await Promise.all(
-    habitData.map(async (h) => {
-      const { data } = await supabase.rpc('get_habit_streak', {
-        p_habit_id: h.id,
-        p_user_id: user.id
-      })
-      return { habit_id: h.id, streak: data ?? 0 }
-    })
-  )
-  setStreaks(results)
-}
-
+  
   useEffect(() => {
-    fetchHabits()
-    fetchLogs()
-    fetchStreaks()
-  }, [])
+  const fetchAll = async () => {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return
+
+    const [{ data: habitData }, { data: logData }] = await Promise.all([
+      supabase.from('habits').select('*').order('position', { ascending: true }),
+      supabase.from('habit_logs').select('*').eq('date', today)
+    ])
+    if (habitData) setHabits(habitData)
+    if (logData) setLogs(logData)
+
+    // 스트릭은 habits ID 필요해서 같이 처리
+    if (habitData) {
+      const results = await Promise.all(
+        habitData.map(async (h) => {
+          const { data } = await supabase.rpc('get_habit_streak', {
+            p_habit_id: h.id,
+            p_user_id: user.id
+          })
+          return { habit_id: h.id, streak: data ?? 0 }
+        })
+      )
+      setStreaks(results)
+    }
+  }
+  fetchAll()
+}, [])
 
   const addHabit = async () => {
     if (!title.trim()) return
