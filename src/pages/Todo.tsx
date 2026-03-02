@@ -1,13 +1,66 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../supabase'
+import {
+  DndContext, closestCenter, PointerSensor, useSensor, useSensors
+} from '@dnd-kit/core'
+import type { DragEndEvent } from '@dnd-kit/core'
+import {
+  arrayMove, SortableContext, useSortable, verticalListSortingStrategy
+} from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
 
 interface Todo {
   id: string
   title: string
-  memo: string
-  priority: string
-  due_date: string
   is_completed: boolean
+  position: number
+}
+
+function SortableItem({ todo, onToggle, onDelete }: {
+  todo: Todo
+  onToggle: (id: string, current: boolean) => void
+  onDelete: (id: string) => void
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: todo.id })
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  }
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={`flex items-center gap-3 bg-white rounded-xl p-4 shadow-sm border ${
+        todo.is_completed ? 'border-gray-100 opacity-50' : 'border-gray-100'
+      }`}
+    >
+      {/* 드래그 핸들 */}
+      <button {...attributes} {...listeners} className="text-gray-300 hover:text-gray-400 cursor-grab active:cursor-grabbing px-1">
+        ⠿
+      </button>
+
+      {/* 완료 버튼 */}
+      <button
+        onClick={() => onToggle(todo.id, todo.is_completed)}
+        className={`w-6 h-6 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all ${
+          todo.is_completed ? 'bg-indigo-600 border-indigo-600 text-white' : 'border-gray-300'
+        }`}
+      >
+        {todo.is_completed && '✓'}
+      </button>
+
+      <span className={`flex-1 text-sm ${todo.is_completed ? 'line-through text-gray-400' : 'text-gray-700'}`}>
+        {todo.title}
+      </span>
+
+      <button onClick={() => onDelete(todo.id)} className="text-gray-300 hover:text-red-400 text-lg">
+        ×
+      </button>
+    </div>
+  )
 }
 
 export default function Todo() {
@@ -15,18 +68,18 @@ export default function Todo() {
   const [title, setTitle] = useState('')
   const [loading, setLoading] = useState(false)
 
-  // 할 일 불러오기
+  const sensors = useSensors(useSensor(PointerSensor))
+
   const fetchTodos = async () => {
     const { data } = await supabase
       .from('todos')
       .select('*')
-      .order('created_at', { ascending: false })
+      .order('position', { ascending: true })
     if (data) setTodos(data)
   }
 
   useEffect(() => { fetchTodos() }, [])
 
-  // 할 일 추가
   const addTodo = async () => {
     if (!title.trim()) return
     setLoading(true)
@@ -35,22 +88,38 @@ export default function Todo() {
       title,
       user_id: user?.id,
       is_completed: false,
+      position: todos.length,
     })
     setTitle('')
     await fetchTodos()
     setLoading(false)
   }
 
-  // 완료 토글
   const toggleTodo = async (id: string, current: boolean) => {
     await supabase.from('todos').update({ is_completed: !current }).eq('id', id)
     await fetchTodos()
   }
 
-  // 삭제
   const deleteTodo = async (id: string) => {
     await supabase.from('todos').delete().eq('id', id)
     await fetchTodos()
+  }
+
+  const handleDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event
+    if (!over || active.id === over.id) return
+
+    const oldIndex = todos.findIndex(t => t.id === active.id)
+    const newIndex = todos.findIndex(t => t.id === over.id)
+    const newTodos = arrayMove(todos, oldIndex, newIndex)
+    setTodos(newTodos)
+
+    // DB에 순서 저장
+    await Promise.all(
+      newTodos.map((todo, index) =>
+        supabase.from('todos').update({ position: index }).eq('id', todo.id)
+      )
+    )
   }
 
   return (
@@ -77,39 +146,23 @@ export default function Todo() {
       </div>
 
       {/* 할 일 목록 */}
-      <div className="space-y-3">
-        {todos.length === 0 && (
-          <p className="text-center text-gray-400 text-sm py-10">할 일이 없어요! 추가해보세요 😊</p>
-        )}
-        {todos.map(todo => (
-          <div
-            key={todo.id}
-            className={`flex items-center gap-3 bg-white rounded-xl p-4 shadow-sm border ${
-              todo.is_completed ? 'border-gray-100 opacity-50' : 'border-gray-100'
-            }`}
-          >
-            <button
-              onClick={() => toggleTodo(todo.id, todo.is_completed)}
-              className={`w-6 h-6 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all ${
-                todo.is_completed
-                  ? 'bg-indigo-600 border-indigo-600 text-white'
-                  : 'border-gray-300'
-              }`}
-            >
-              {todo.is_completed && '✓'}
-            </button>
-            <span className={`flex-1 text-sm ${todo.is_completed ? 'line-through text-gray-400' : 'text-gray-700'}`}>
-              {todo.title}
-            </span>
-            <button
-              onClick={() => deleteTodo(todo.id)}
-              className="text-gray-300 hover:text-red-400 text-lg"
-            >
-              ×
-            </button>
+      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+        <SortableContext items={todos.map(t => t.id)} strategy={verticalListSortingStrategy}>
+          <div className="space-y-3">
+            {todos.length === 0 && (
+              <p className="text-center text-gray-400 text-sm py-10">할 일이 없어요! 추가해보세요 😊</p>
+            )}
+            {todos.map(todo => (
+              <SortableItem
+                key={todo.id}
+                todo={todo}
+                onToggle={toggleTodo}
+                onDelete={deleteTodo}
+              />
+            ))}
           </div>
-        ))}
-      </div>
+        </SortableContext>
+      </DndContext>
     </div>
   )
 }

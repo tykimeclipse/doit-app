@@ -13,18 +13,17 @@ export default function Home() {
 
   useEffect(() => {
     const fetchAll = async () => {
-      await supabase.auth.getUser()
       const { data: todoData } = await supabase
         .from('todos')
         .select('*')
         .eq('is_completed', false)
-        .order('created_at', { ascending: false })
-        .limit(5)
+        .order('position', { ascending: true })
       if (todoData) setTodos(todoData)
 
       const { data: habitData } = await supabase
         .from('habits')
         .select('*')
+        .order('position', { ascending: true })
       if (habitData) setHabits(habitData)
 
       const { data: logData } = await supabase
@@ -61,10 +60,36 @@ export default function Home() {
         </div>
       </div>
 
-      {/* 습관 달성 프로그레스 */}
+      {/* 남은 할 일 - 위로 */}
+      {todos.length > 0 && (
+        <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
+          <p className="text-sm font-bold text-gray-700 mb-3">✅ 남은 할 일</p>
+          <div className="space-y-2">
+            {todos.map((todo, index) => (
+              <div key={todo.id} className="flex items-center gap-3">
+                <span className="text-xs text-gray-300 w-4">{index + 1}</span>
+                <div className="w-2 h-2 rounded-full bg-indigo-400 flex-shrink-0" />
+                <span className="text-sm text-gray-700">{todo.title}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* 오늘의 습관 - 아래로 */}
       {habits.length > 0 && (
         <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
           <p className="text-sm font-bold text-gray-700 mb-3">🔥 오늘의 습관</p>
+          {/* 달성률 바 */}
+          <div className="mb-4">
+            <div className="w-full bg-gray-100 rounded-full h-2">
+              <div
+                className="bg-orange-400 h-2 rounded-full transition-all"
+                style={{ width: `${habitRate}%` }}
+              />
+            </div>
+            <p className="text-xs text-gray-400 mt-1">{habitDoneCount} / {habits.length} 완료</p>
+          </div>
           <div className="space-y-2">
             {habits.map(habit => {
               const done = logs.some(l => l.habit_id === habit.id)
@@ -78,27 +103,6 @@ export default function Home() {
                 </div>
               )
             })}
-          </div>
-          <div className="mt-3 w-full bg-gray-100 rounded-full h-2">
-            <div
-              className="bg-orange-400 h-2 rounded-full transition-all"
-              style={{ width: `${habitRate}%` }}
-            />
-          </div>
-        </div>
-      )}
-
-      {/* 오늘 할 일 미리보기 */}
-      {todos.length > 0 && (
-        <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
-          <p className="text-sm font-bold text-gray-700 mb-3">✅ 남은 할 일</p>
-          <div className="space-y-2">
-            {todos.map(todo => (
-              <div key={todo.id} className="flex items-center gap-3">
-                <div className="w-2 h-2 rounded-full bg-indigo-400 flex-shrink-0" />
-                <span className="text-sm text-gray-700">{todo.title}</span>
-              </div>
-            ))}
           </div>
         </div>
       )}

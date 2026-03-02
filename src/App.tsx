@@ -4,6 +4,8 @@ import Auth from './pages/Auth'
 import Home from './pages/Home'
 import Todo from './pages/Todo'
 import Habit from './pages/Habit'
+import Stats from './pages/Stats'
+
 
 function App() {
   const [session, setSession] = useState<any>(null)
@@ -38,6 +40,7 @@ function App() {
         {tab === 'home' && <Home />}
         {tab === 'todo' && <Todo />}
         {tab === 'habit' && <Habit />}
+        {tab === 'stats' && <Stats />}
       </main>
 
       {/* 하단 탭바 */}
@@ -46,6 +49,7 @@ function App() {
           { id: 'home', label: '홈', icon: '🏠' },
           { id: 'todo', label: '할 일', icon: '✅' },
           { id: 'habit', label: '습관', icon: '🔥' },
+          { id: 'stats', label: '통계', icon: '📊'},
         ].map(item => (
           <button
             key={item.id}
