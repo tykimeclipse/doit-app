@@ -47,7 +47,7 @@ function SortableHabit({ habit, isDone, streak, onToggle, onDelete }: {
     <div
       ref={setNodeRef}
       style={style}
-      className={`flex items-center gap-3 bg-white rounded-xl p-4 shadow-sm border transition-all ${
+      className={`flex items-center gap-3 bg-white rounded-xl p-3 shadow-sm border transition-all ${
         isDone ? 'border-indigo-200 bg-indigo-50' : 'border-gray-100'
       }`}
     >
@@ -58,7 +58,7 @@ function SortableHabit({ habit, isDone, streak, onToggle, onDelete }: {
 
       <button
         onClick={() => onToggle(habit)}
-        className={`w-10 h-10 rounded-xl flex items-center justify-center text-xl transition-all ${
+        className={`w-8 h-8 rounded-xl flex items-center justify-center text-xl transition-all ${
           isDone ? 'bg-indigo-600' : 'bg-gray-100'
         }`}
       >
@@ -70,13 +70,9 @@ function SortableHabit({ habit, isDone, streak, onToggle, onDelete }: {
           {habit.title}
         </p>
         <p className="text-xs text-gray-400">
-          {isDone ? '✅ 오늘 완료!' : '오늘 아직 안 했어요'}
+          {isDone ? '✅ 완료' : '미완료'}
+          {streak > 0 && <span className="text-orange-400 ml-2">🔥 {streak}일 연속</span>}
         </p>
-        {streak > 0 && (
-        <p className="text-xs text-orange-400 font-medium">
-    🔥    {streak}일 연속 달성 중!
-        </p>
-        )}
       </div>
 
       <button onClick={() => onDelete(habit.id)} className="text-gray-300 hover:text-red-400 text-lg">
@@ -185,7 +181,7 @@ export default function Habit() {
   const icons = ['⭐', '💪', '📚', '🏃', '💧', '🧘', '🎯', '✍️', '🥗', '😴']
 
   return (
-    <div className="p-6">
+    <div className="p-4">
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-2xl font-bold text-gray-800">습관 🔥</h2>
         <button
@@ -257,7 +253,7 @@ export default function Habit() {
       {/* 습관 목록 */}
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
         <SortableContext items={habits.map(h => h.id)} strategy={verticalListSortingStrategy}>
-          <div className="space-y-3">
+          <div className="space-y-2">
             {habits.length === 0 && (
               <p className="text-center text-gray-400 text-sm py-10">습관을 추가해보세요! 🔥</p>
             )}

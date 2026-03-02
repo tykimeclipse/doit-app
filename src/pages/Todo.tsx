@@ -33,7 +33,7 @@ function SortableItem({ todo, onToggle, onDelete }: {
     <div
       ref={setNodeRef}
       style={style}
-      className={`flex items-center gap-3 bg-white rounded-xl p-4 shadow-sm border ${
+      className={`flex items-center gap-3 bg-white rounded-xl p-3 shadow-sm border ${
         todo.is_completed ? 'border-gray-100 opacity-50' : 'border-gray-100'
       }`}
     >
@@ -123,7 +123,7 @@ export default function Todo() {
   }
 
   return (
-    <div className="p-6">
+    <div className="p-4">
       <h2 className="text-2xl font-bold text-gray-800 mb-6">할 일 ✅</h2>
 
       {/* 입력창 */}
@@ -148,7 +148,7 @@ export default function Todo() {
       {/* 할 일 목록 */}
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
         <SortableContext items={todos.map(t => t.id)} strategy={verticalListSortingStrategy}>
-          <div className="space-y-3">
+          <div className="space-y-2">
             {todos.length === 0 && (
               <p className="text-center text-gray-400 text-sm py-10">할 일이 없어요! 추가해보세요 😊</p>
             )}
