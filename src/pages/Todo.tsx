@@ -67,6 +67,8 @@ export default function Todo() {
   const [todos, setTodos] = useState<Todo[]>([])
   const [title, setTitle] = useState('')
   const [loading, setLoading] = useState(false)
+  const [showCompleted, setShowCompleted] = useState(false)
+  const [completedTodos, setCompletedTodos] = useState<Todo[]>([])
 
   const sensors = useSensors(useSensor(PointerSensor))
 
@@ -78,7 +80,20 @@ export default function Todo() {
     if (data) setTodos(data)
   }
 
-  useEffect(() => { fetchTodos() }, [])
+  const fetchCompletedTodos = async () => {
+    const { data } = await supabase
+      .from('todos')
+      .select('*')
+      .eq('is_completed', true)
+      .order('created_at', { ascending: false })
+      .limit(20)
+    if (data) setCompletedTodos(data)
+  }
+
+  useEffect(() => {
+  fetchTodos()
+  fetchCompletedTodos()
+  }, [])
 
   const addTodo = async () => {
     if (!title.trim()) return
@@ -98,11 +113,13 @@ export default function Todo() {
   const toggleTodo = async (id: string, current: boolean) => {
     await supabase.from('todos').update({ is_completed: !current }).eq('id', id)
     await fetchTodos()
+    await fetchCompletedTodos()
   }
 
   const deleteTodo = async (id: string) => {
     await supabase.from('todos').delete().eq('id', id)
     await fetchTodos()
+    await fetchCompletedTodos()
   }
 
   const handleDragEnd = async (event: DragEndEvent) => {
@@ -163,6 +180,39 @@ export default function Todo() {
           </div>
         </SortableContext>
       </DndContext>
+      {/* 완료된 할 일 */}
+{completedTodos.length > 0 && (
+  <div className="mt-6">
+    <button
+      onClick={() => setShowCompleted(!showCompleted)}
+      className="flex items-center gap-2 text-sm text-gray-400 hover:text-gray-600 mb-3"
+    >
+      <span>{showCompleted ? '▼' : '▶'}</span>
+      <span>완료된 할 일 ({completedTodos.length})</span>
+    </button>
+    {showCompleted && (
+      <div className="space-y-2">
+        {completedTodos.map(todo => (
+          <div key={todo.id} className="flex items-center gap-3 bg-white rounded-xl p-3 shadow-sm border border-gray-100 opacity-50">
+            <button
+              onClick={() => toggleTodo(todo.id, todo.is_completed)}
+              className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 bg-indigo-600 border-indigo-600 text-white"
+            >
+              ✓
+            </button>
+            <span className="flex-1 text-sm line-through text-gray-400">{todo.title}</span>
+            <button
+              onClick={() => deleteTodo(todo.id)}
+              className="text-gray-300 hover:text-red-400 text-lg"
+            >
+              ×
+            </button>
+          </div>
+        ))}
+      </div>
+    )}
+  </div>
+)}
     </div>
   )
 }
