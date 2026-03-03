@@ -24,7 +24,7 @@ function App() {
   if (!session) return <Auth />
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col max-w-lg mx-auto">
+    <div className={`min-h-screen bg-gray-50 flex flex-col ${tab === 'planner' ? 'max-w-5xl' : 'max-w-lg'} mx-auto`}>
       {/* 상단 헤더 */}
       <header className="bg-white border-b border-gray-100 px-6 py-4 flex justify-between items-center">
         <h1 className="text-xl font-bold text-indigo-600">DoIt 🚀</h1>

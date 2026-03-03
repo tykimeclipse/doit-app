@@ -115,7 +115,7 @@ export default function Planner() {
         <table className="w-full border-collapse" style={{minWidth: '600px'}}>
           <thead className="sticky top-0 z-10 bg-white">
             <tr>
-              <th className="border border-gray-100 bg-gray-50 text-xs text-gray-400 font-medium p-2 w-14">
+              <th className="border border-gray-100 bg-gray-50 text-xs text-gray-400 font-medium p-2 w-14 sticky left-0 z-20">
                 시간
               </th>
               {DAYS.map((day, i) => (
@@ -135,7 +135,7 @@ export default function Planner() {
           <tbody>
             {TIME_SLOTS.map(time => (
               <tr key={time} className={time === currentSlot && today >= 0 ? 'bg-yellow-50' : ''}>
-                <td className="border border-gray-100 text-xs text-gray-400 p-1 text-center w-14 bg-gray-50 font-medium">
+                <td className="border border-gray-100 text-xs text-gray-400 p-1 text-center w-14 bg-gray-50 font-medium sticky left-0 z-10">
                   {time}
                 </td>
                 {DAYS.map((_, dayIndex) => {
