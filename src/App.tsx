@@ -5,6 +5,7 @@ import Home from './pages/Home'
 import Todo from './pages/Todo'
 import Habit from './pages/Habit'
 import Stats from './pages/Stats'
+import Planner from './pages/Planner'
 
 
 function App() {
@@ -41,6 +42,7 @@ function App() {
         {tab === 'todo' && <Todo />}
         {tab === 'habit' && <Habit />}
         {tab === 'stats' && <Stats />}
+        {tab === 'planner' && <Planner />}
       </main>
 
       {/* 하단 탭바 */}
@@ -50,6 +52,7 @@ function App() {
           { id: 'todo', label: '할 일', icon: '✅' },
           { id: 'habit', label: '습관', icon: '🔥' },
           { id: 'stats', label: '통계', icon: '📊'},
+          { id: 'planner', label: '플래너', icon: '📅' },
         ].map(item => (
           <button
             key={item.id}
