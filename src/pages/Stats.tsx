@@ -45,11 +45,12 @@ export default function Stats() {
       // 2. 주간 + 히트맵 데이터 한 번에 가져오기
       const startDate = new Date()
       startDate.setDate(startDate.getDate() - 27)
+      const startDateStr = `${startDate.getFullYear()}-${String(startDate.getMonth() + 1).padStart(2, '0')}-${String(startDate.getDate()).padStart(2, '0')}`
       const { data: logs } = await supabase
         .from('habit_logs')
         .select('date')
         .eq('user_id', user.id)
-        .gte('date', startDate.toISOString().split('T')[0])
+        .gte('date', startDateStr)
 
       // 히트맵 (28일)
       const days = ['일', '월', '화', '수', '목', '금', '토']

@@ -6,7 +6,8 @@ export default function Home() {
   const [habits, setHabits] = useState<any[]>([])
   const [logs, setLogs] = useState<any[]>([])
 
-  const today = new Date().toISOString().split('T')[0]
+  const now = new Date()
+  const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
   const todayLabel = new Date().toLocaleDateString('ko-KR', {
     year: 'numeric', month: 'long', day: 'numeric', weekday: 'long'
   })

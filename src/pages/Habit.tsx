@@ -91,7 +91,8 @@ export default function Habit() {
   const [loading, setLoading] = useState(false)
   const [streaks, setStreaks] = useState<HabitStreak[]>([])
 
-  const today = new Date().toISOString().split('T')[0]
+  const now = new Date()
+  const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
   const sensors = useSensors(useSensor(PointerSensor))
 
   const fetchHabits = async () => {
