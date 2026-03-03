@@ -51,8 +51,9 @@ function App() {
           { id: 'home', label: '홈', icon: '🏠' },
           { id: 'todo', label: '할 일', icon: '✅' },
           { id: 'habit', label: '습관', icon: '🔥' },
-          { id: 'stats', label: '통계', icon: '📊'},
           { id: 'planner', label: '플래너', icon: '📅' },
+          { id: 'stats', label: '통계', icon: '📊'},
+          
         ].map(item => (
           <button
             key={item.id}
