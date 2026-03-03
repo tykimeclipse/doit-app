@@ -103,7 +103,7 @@ export default function Planner() {
   const currentSlot = `${String(now.getHours()).padStart(2, '0')}:${now.getMinutes() < 30 ? '00' : '30'}`
 
   return (
-    <div className="flex flex-col h-screen" style={{maxHeight: 'calc(100vh - 120px)'}}>
+    <div className="flex flex-col" style={{height: 'calc(100vh - 120px)'}}>
       {/* 헤더 */}
       <div className="px-4 py-3 border-b border-gray-100">
         <h2 className="text-xl font-bold text-gray-800">주간 플래너 📅</h2>

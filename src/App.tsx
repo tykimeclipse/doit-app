@@ -37,7 +37,7 @@ function App() {
       </header>
 
       {/* 메인 콘텐츠 */}
-      <main className="flex-1 overflow-y-auto pb-20">
+      <main className={`flex-1 overflow-y-auto ${tab === 'planner' ? 'pb-0' : 'pb-20'}`}>
         {tab === 'home' && <Home />}
         {tab === 'todo' && <Todo />}
         {tab === 'habit' && <Habit />}
