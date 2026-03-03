@@ -147,7 +147,7 @@ export default function Planner() {
                       key={dayIndex}
                       onClick={() => handleCellClick(dayIndex, time)}
                       className="border border-gray-100 p-1 align-top cursor-pointer hover:bg-indigo-50 transition-colors"
-                      style={{minHeight: '32px', minWidth: '70px'}}
+                      style={{minHeight: '32px', minWidth: '96px', maxWidth: '96px', width: '96px'}}
                     >
                       {/* 기존 항목들 */}
                       {cellItems.map(item => (
