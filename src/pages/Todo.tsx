@@ -202,9 +202,10 @@ export default function Todo() {
 
       {/* 수정 모달 */}
 {editingTodo && (
-  <div className="fixed inset-0 bg-black bg-opacity-20 flex items-center justify-center z-50 p-6"
+  <div className="fixed inset-0  flex items-center justify-center z-50 p-6 pointer-events-none"
+    style={{background: 'rgba(0,0,0,0.15)'}}
     onClick={() => setEditingTodo(null)}>
-    <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-xl"
+    <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-xl pointer-events-auto"
       onClick={e => e.stopPropagation()}>
       <h3 className="text-sm font-bold text-gray-700 mb-3">할 일 수정</h3>
       <input
