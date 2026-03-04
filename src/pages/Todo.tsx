@@ -253,7 +253,8 @@ export default function Todo() {
             >
               ✓
             </button>
-            <span className="flex-1 text-sm text-gray-700">
+            <span className="flex-1 text-sm text-gray-700" 
+            >
               {todo.title}</span>
             <button
               onClick={() => deleteTodo(todo.id)}
