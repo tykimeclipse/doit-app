@@ -16,10 +16,11 @@ interface Todo {
   position: number
 }
 
-function SortableItem({ todo, onToggle, onDelete }: {
+function SortableItem({ todo, onToggle, onDelete, onEdit }: {
   todo: Todo
   onToggle: (id: string, current: boolean) => void
   onDelete: (id: string) => void
+  onEdit: (todo: Todo) => void
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: todo.id })
 
@@ -52,7 +53,9 @@ function SortableItem({ todo, onToggle, onDelete }: {
         {todo.is_completed && '✓'}
       </button>
 
-      <span className={`flex-1 text-sm ${todo.is_completed ? 'line-through text-gray-400' : 'text-gray-700'}`}>
+      <span className={`flex-1 text-sm ${todo.is_completed ? 'line-through text-gray-400' : 'text-gray-700 cursor-pointer hover:text-indigo-600'}`}
+  onClick={() => !todo.is_completed && onEdit(todo)}
+>
         {todo.title}
       </span>
 
@@ -69,6 +72,8 @@ export default function Todo() {
   const [loading, setLoading] = useState(false)
   const [showCompleted, setShowCompleted] = useState(false)
   const [completedTodos, setCompletedTodos] = useState<Todo[]>([])
+  const [editingTodo, setEditingTodo] = useState<Todo | null>(null)
+  const [editTitle, setEditTitle] = useState('')
 
   const sensors = useSensors(useSensor(PointerSensor))
 
@@ -76,6 +81,7 @@ export default function Todo() {
     const { data } = await supabase
       .from('todos')
       .select('*')
+      .eq('is_completed', false)
       .order('position', { ascending: true })
     if (data) setTodos(data)
   }
@@ -120,6 +126,14 @@ export default function Todo() {
     await supabase.from('todos').delete().eq('id', id)
     await fetchTodos()
     await fetchCompletedTodos()
+  }
+
+  const updateTodo = async () => {
+    if (!editingTodo || !editTitle.trim()) return
+    await supabase.from('todos').update({ title: editTitle }).eq('id', editingTodo.id)
+    await fetchTodos()
+      setEditingTodo(null)
+      setEditTitle('')
   }
 
   const handleDragEnd = async (event: DragEndEvent) => {
@@ -175,11 +189,50 @@ export default function Todo() {
                 todo={todo}
                 onToggle={toggleTodo}
                 onDelete={deleteTodo}
+                onEdit={(todo) => {
+                  setEditingTodo(todo)
+                  setEditTitle(todo.title)
+                }}
               />
             ))}
           </div>
         </SortableContext>
       </DndContext>
+
+
+      {/* 수정 모달 */}
+{editingTodo && (
+  <div className="fixed inset-0 bg-black bg-opacity-20 flex items-center justify-center z-50 p-6"
+    onClick={() => setEditingTodo(null)}>
+    <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-xl"
+      onClick={e => e.stopPropagation()}>
+      <h3 className="text-sm font-bold text-gray-700 mb-3">할 일 수정</h3>
+      <input
+        type="text"
+        value={editTitle}
+        onChange={e => setEditTitle(e.target.value)}
+        onKeyDown={e => e.key === 'Enter' && updateTodo()}
+        autoFocus
+        className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300 mb-4"
+      />
+      <div className="flex gap-2">
+        <button
+          onClick={updateTodo}
+          className="flex-1 bg-indigo-600 text-white py-2 rounded-xl text-sm font-medium hover:bg-indigo-700"
+        >
+          저장
+        </button>
+        <button
+          onClick={() => setEditingTodo(null)}
+          className="flex-1 bg-gray-100 text-gray-500 py-2 rounded-xl text-sm font-medium hover:bg-gray-200"
+        >
+          취소
+        </button>
+      </div>
+    </div>
+  </div>
+)}
+
       {/* 완료된 할 일 */}
 {completedTodos.length > 0 && (
   <div className="mt-6">
@@ -200,7 +253,8 @@ export default function Todo() {
             >
               ✓
             </button>
-            <span className="flex-1 text-sm line-through text-gray-400">{todo.title}</span>
+            <span className="flex-1 text-sm text-gray-700">
+              {todo.title}</span>
             <button
               onClick={() => deleteTodo(todo.id)}
               className="text-gray-300 hover:text-red-400 text-lg"
