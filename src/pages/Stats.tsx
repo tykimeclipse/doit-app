@@ -136,8 +136,14 @@ export default function Stats() {
           {['일', '월', '화', '수', '목', '금', '토'].map(d => (
             <div key={d} className="text-center text-xs text-gray-400">{d}</div>
           ))}
-          {heatmap.map((d, i) => (
-            <div key={i} className={`aspect-square rounded-sm ${getHeatColor(d.count)}`} title={`${d.date}: ${d.count}개`} />
+          {/* 첫 날짜 요일만큼 빈 칸 추가 */}
+  {heatmap.length > 0 && Array.from({
+    length: new Date(heatmap[0].date + 'T00:00:00').getDay()
+  }).map((_, i) => (
+    <div key={`empty-${i}`} className="aspect-square" />
+  ))}
+  {heatmap.map((d, i) => (
+    <div key={i} className={`aspect-square rounded-sm ${getHeatColor(d.count)}`} title={`${d.date}: ${d.count}개`} />
           ))}
         </div>
         <div className="flex items-center gap-2 mt-2 justify-end">
