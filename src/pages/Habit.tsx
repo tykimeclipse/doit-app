@@ -90,6 +90,9 @@ export default function Habit() {
   const [showForm, setShowForm] = useState(false)
   const [loading, setLoading] = useState(false)
   const [streaks, setStreaks] = useState<HabitStreak[]>([])
+  const [showEditModal, setShowEditModal] = useState(false)
+  const [weekLogs, setWeekLogs] = useState<{date: string, habit_id: string}[]>([])
+  const [weekDates, setWeekDates] = useState<string[]>([])
 
   const now = new Date()
   const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
@@ -104,7 +107,20 @@ export default function Habit() {
     const { data } = await supabase.from('habit_logs').select('*').eq('date', today)
     if (data) setLogs(data)
   }
-
+  const fetchWeekLogs = async () => {
+  const dates: string[] = []
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date()
+    d.setDate(d.getDate() - i)
+    dates.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`)
+  }
+  setWeekDates(dates)
+  const { data } = await supabase
+    .from('habit_logs')
+    .select('date, habit_id')
+    .in('date', dates)
+  if (data) setWeekLogs(data)
+}
   
   useEffect(() => {
   const fetchAll = async () => {
@@ -193,10 +209,16 @@ export default function Habit() {
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-2xl font-bold text-gray-800">습관 🔥</h2>
         <button
-          onClick={() => setShowForm(!showForm)}
-          className="bg-indigo-600 text-white px-4 py-2 rounded-xl text-sm font-medium hover:bg-indigo-700"
-        >
-          + 추가
+          onClick={() => { fetchWeekLogs(); setShowEditModal(true) }}
+      className="bg-gray-100 text-gray-600 px-4 py-2 rounded-xl text-sm font-medium hover:bg-gray-200"
+    >
+      📅 수정
+    </button>
+    <button
+      onClick={() => setShowForm(!showForm)}
+      className="bg-indigo-600 text-white px-4 py-2 rounded-xl text-sm font-medium hover:bg-indigo-700"
+    >
+      + 추가
         </button>
       </div>
 
@@ -278,6 +300,90 @@ export default function Habit() {
           </div>
         </SortableContext>
       </DndContext>
+      {/* 과거 7일 수정 모달 */}
+{showEditModal && (
+  <div className="fixed inset-0 bg-black bg-opacity-30 flex items-start justify-center z-50 p-4 overflow-y-auto">
+    <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl mt-4 mb-4">
+      <div className="flex justify-between items-center p-4 border-b border-gray-100">
+        <h3 className="font-bold text-gray-800">📅 지난 7일 습관 수정</h3>
+        <button onClick={() => setShowEditModal(false)}
+          className="text-gray-400 hover:text-gray-600 text-xl">×</button>
+      </div>
+
+      <div className="overflow-x-auto">
+        <table className="w-full">
+          <thead>
+            <tr>
+              <th className="text-left text-xs text-gray-400 font-medium p-3 sticky left-0 bg-white border-b border-gray-100">
+                습관
+              </th>
+              {weekDates.map(date => {
+                const d = new Date(date + 'T00:00:00')
+                const days = ['일', '월', '화', '수', '목', '금', '토']
+                const isToday = date === today
+                return (
+                  <th key={date} className={`text-center text-xs font-medium p-3 border-b border-gray-100 ${isToday ? 'text-indigo-600' : 'text-gray-400'}`}>
+                    <div>{days[d.getDay()]}</div>
+                    <div>{d.getDate()}</div>
+                  </th>
+                )
+              })}
+            </tr>
+          </thead>
+          <tbody>
+            {habits.map(habit => (
+              <tr key={habit.id} className="border-b border-gray-50">
+                <td className="text-sm text-gray-700 p-3 sticky left-0 bg-white">
+                  <div className="flex items-center gap-2">
+                    <span>{habit.icon}</span>
+                    <span className="truncate max-w-24">{habit.title}</span>
+                  </div>
+                </td>
+                {weekDates.map(date => {
+                  const isDone = weekLogs.some(l => l.habit_id === habit.id && l.date === date)
+                  return (
+                    <td key={date} className="text-center p-3">
+                      <button
+                        onClick={async () => {
+                          const { data: { user } } = await supabase.auth.getUser()
+                          if (!user) return
+                          if (isDone) {
+                            await supabase.from('habit_logs').delete()
+                              .eq('habit_id', habit.id).eq('date', date)
+                            setWeekLogs(prev => prev.filter(l => !(l.habit_id === habit.id && l.date === date)))
+                          } else {
+                            await supabase.from('habit_logs').insert({
+                              habit_id: habit.id, user_id: user.id, date, count: 1
+                            })
+                            setWeekLogs(prev => [...prev, { habit_id: habit.id, date }])
+                          }
+                        }}
+                        className={`w-7 h-7 rounded-lg border-2 flex items-center justify-center mx-auto transition-all ${
+                          isDone ? 'bg-indigo-600 border-indigo-600 text-white' : 'border-gray-200 hover:border-indigo-400'
+                        }`}
+                      >
+                        {isDone && '✓'}
+                      </button>
+                    </td>
+                  )
+                })}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <div className="p-4">
+        <button
+          onClick={() => setShowEditModal(false)}
+          className="w-full bg-indigo-600 text-white py-3 rounded-xl text-sm font-medium hover:bg-indigo-700"
+        >
+          완료
+        </button>
+      </div>
+    </div>
+  </div>
+)}
     </div>
   )
 }
