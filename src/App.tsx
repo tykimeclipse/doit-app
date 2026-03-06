@@ -27,7 +27,7 @@ function App() {
     <div className={`min-h-screen bg-gray-50 flex flex-col ${tab === 'planner' ? 'max-w-5xl' : 'max-w-lg'} mx-auto`}>
       {/* 상단 헤더 */}
       <header className="bg-white border-b border-gray-100 px-6 py-4 flex justify-between items-center">
-        <h1 className="text-xl font-bold text-indigo-600">DoIt 🚀</h1>
+        <h1 className="text-xl font-bold text-indigo-600 cursor-pointer" onClick={() => setTab('home')}>Do:It 🚀</h1>
         <button
           onClick={() => supabase.auth.signOut()}
           className="text-xs text-gray-400 hover:text-red-400"
@@ -50,7 +50,7 @@ function App() {
         {[
           { id: 'home', label: '홈', icon: '🏠' },
           { id: 'todo', label: '할 일', icon: '✅' },
-          { id: 'habit', label: '습관', icon: '🔥' },
+          { id: 'habit', label: '습관', icon: '🔄' },
           { id: 'planner', label: '플래너', icon: '📅' },
           { id: 'stats', label: '통계', icon: '📊'},
           

@@ -23,7 +23,7 @@ export default function Stats() {
 
       // 1. 습관별 통계 - 한 번에 가져오기
       const [{ data: habits }, { data: statsData }] = await Promise.all([
-        supabase.from('habits').select('id, title, icon'),
+        supabase.from('habits').select('id, title, icon, position').order('position', {ascending: true }),
         supabase.rpc('get_all_habit_stats', { p_user_id: user.id })
       ])
 
@@ -65,7 +65,7 @@ export default function Stats() {
         heatmapData.push({ date: dateStr, count })
 
         // 주간 (최근 7일)
-        if (i < 7) {
+        if (i <= 6) {
           weeklyArr.push({ day: days[d.getDay()], count })
         }
       }
