@@ -114,7 +114,7 @@ function HabitEditModal({ habits, weekDates, weekLogs, today, userId, onClose, o
   onUpdate: (logs: { date: string, habit_id: string }[]) => void
 }) {
   const [localLogs, setLocalLogs] = useState(weekLogs)
-  const [saving, setSaving] = useState(false)
+  const saving = false
 
   const handleToggle = async (habitId: string, date: string) => {
     const isDone = localLogs.some(l => l.habit_id === habitId && l.date === date)
@@ -129,7 +129,7 @@ function HabitEditModal({ habits, weekDates, weekLogs, today, userId, onClose, o
     try {
       if (isDone) {
         await supabase.from('habit_logs').delete()
-          .eq('habit_id', habitId).eq('date', date)
+          .eq('habit_id', habitId).eq('date', date).eq('user_id', userId)
       } else {
         await supabase.from('habit_logs').insert({
           habit_id: habitId, user_id: userId, date, count: 1
@@ -258,8 +258,8 @@ export default function Habit() {
         setUserId(user.id) // 유저 ID 한 번만 저장
 
         const [{ data: habitData }, { data: logData }] = await Promise.all([
-          supabase.from('habits').select('*').order('position', { ascending: true }),
-          supabase.from('habit_logs').select('*').eq('date', today)
+          supabase.from('habits').select('*').eq('user_id', user.id).order('position', { ascending: true }),
+          supabase.from('habit_logs').select('*').eq('user_id', user.id).eq('date', today)
         ])
         if (habitData) setHabits(habitData)
         if (logData) setLogs(logData)
@@ -284,13 +284,14 @@ export default function Habit() {
   }, [])
 
   const fetchLogs = useCallback(async () => {
-    const { data } = await supabase.from('habit_logs').select('*').eq('date', today)
+    if (!userId) return
+    const { data } = await supabase.from('habit_logs').select('*').eq('user_id', userId).eq('date', today)
     if (data) setLogs(data)
-  }, [today])
+  }, [today, userId])
 
   // 습관 추가
   const addHabit = async () => {
-    if (!title.trim()) return
+    if (!title.trim() || !userId) return
     setLoading(true)
     try {
       await supabase.from('habits').insert({
@@ -299,7 +300,7 @@ export default function Habit() {
       setTitle('')
       setIcon('⭐')
       setShowForm(false)
-      const { data } = await supabase.from('habits').select('*').order('position', { ascending: true })
+      const { data } = await supabase.from('habits').select('*').eq('user_id', userId).order('position', { ascending: true })
       if (data) setHabits(data)
       showToast('습관이 추가됐어요!', 'success')
     } catch {
@@ -311,6 +312,7 @@ export default function Habit() {
 
   // 낙관적 업데이트 적용한 toggleHabit
   const toggleHabit = async (habit: Habit) => {
+    if (!userId) return
     const isCurrentlyDone = logs.some(l => l.habit_id === habit.id)
 
     // 즉시 UI 업데이트
@@ -322,7 +324,7 @@ export default function Habit() {
 
     try {
       if (isCurrentlyDone) {
-        await supabase.from('habit_logs').delete().eq('habit_id', habit.id).eq('date', today)
+        await supabase.from('habit_logs').delete().eq('habit_id', habit.id).eq('date', today).eq('user_id', userId)
       } else {
         await supabase.from('habit_logs').insert({
           habit_id: habit.id, user_id: userId, date: today, count: 1
@@ -341,8 +343,9 @@ export default function Habit() {
 
   // 습관 삭제
   const deleteHabit = async (id: string) => {
+    if (!userId) return
     try {
-      await supabase.from('habits').delete().eq('id', id)
+      await supabase.from('habits').delete().eq('id', id).eq('user_id', userId)
       setHabits(prev => prev.filter(h => h.id !== id))
     } catch {
       showToast('삭제 중 오류가 발생했어요')
@@ -351,6 +354,7 @@ export default function Habit() {
 
   // 드래그 앤 드롭
   const handleDragEnd = async (event: DragEndEvent) => {
+    if (!userId) return
     const { active, over } = event
     if (!over || active.id === over.id) return
 
@@ -362,7 +366,7 @@ export default function Habit() {
     try {
       await Promise.all(
         newHabits.map((habit, index) =>
-          supabase.from('habits').update({ position: index }).eq('id', habit.id)
+          supabase.from('habits').update({ position: index }).eq('id', habit.id).eq('user_id', userId)
         )
       )
     } catch {
@@ -372,11 +376,13 @@ export default function Habit() {
 
   // 주간 모달 열기
   const openEditModal = async () => {
+    if (!userId) return
     setModalLoading(true)
     try {
       const { data } = await supabase
         .from('habit_logs')
         .select('date, habit_id')
+        .eq('user_id', userId)
         .in('date', weekDates)
       if (data) setWeekLogs(data)
       setShowEditModal(true)

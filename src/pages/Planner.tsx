@@ -24,16 +24,26 @@ export default function Planner() {
   const [inputValue, setInputValue] = useState('')
   const [selectedColor, setSelectedColor] = useState('#6366f1')
   const [editingItem, setEditingItem] = useState<PlannerItem | null>(null)
+  const [userId, setUserId] = useState('')
   const inputRef = useRef<HTMLInputElement>(null)
 
   const today = new Date().getDay()
 
-  const fetchItems = async () => {
-    const { data } = await supabase.from('planner').select('*')
+  const fetchItems = async (uid = userId) => {
+    if (!uid) return
+    const { data } = await supabase.from('planner').select('*').eq('user_id', uid)
     if (data) setItems(data)
   }
 
-  useEffect(() => { fetchItems() }, [])
+  useEffect(() => {
+    const init = async () => {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+      setUserId(user.id)
+      await fetchItems(user.id)
+    }
+    init()
+  }, [])
 
   useEffect(() => {
     if (editing && inputRef.current) {
@@ -60,21 +70,19 @@ export default function Planner() {
   }
 
   const handleSave = async () => {
-    if (!editing || !inputValue.trim()) {
+    if (!editing || !inputValue.trim() || !userId) {
       setEditing(null)
       return
     }
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return
 
     if (editingItem) {
       await supabase.from('planner').update({
         content: inputValue,
         color: selectedColor
-      }).eq('id', editingItem.id)
+      }).eq('id', editingItem.id).eq('user_id', userId)
     } else {
       await supabase.from('planner').insert({
-        user_id: user.id,
+        user_id: userId,
         day_of_week: editing.day,
         time_slot: editing.time,
         content: inputValue,
@@ -87,8 +95,9 @@ export default function Planner() {
   }
 
   const handleDelete = async (e: React.MouseEvent, id: string) => {
+    if (!userId) return
     e.stopPropagation()
-    await supabase.from('planner').delete().eq('id', id)
+    await supabase.from('planner').delete().eq('id', id).eq('user_id', userId)
     await fetchItems()
     setEditing(null)
   }

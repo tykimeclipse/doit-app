@@ -14,10 +14,18 @@ export default function Home() {
 
   useEffect(() => {
     const fetchAll = async () => {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) {
+        setTodos([])
+        setHabits([])
+        setLogs([])
+        return
+      }
+
       const [{ data: todoData }, { data: habitData }, { data: logData }] = await Promise.all([
-        supabase.from('todos').select('*').eq('is_completed', false).order('position', { ascending: true }),
-        supabase.from('habits').select('*').order('position', { ascending: true }),
-        supabase.from('habit_logs').select('*').eq('date', today)
+        supabase.from('todos').select('*').eq('user_id', user.id).eq('is_completed', false).order('position', { ascending: true }),
+        supabase.from('habits').select('*').eq('user_id', user.id).order('position', { ascending: true }),
+        supabase.from('habit_logs').select('*').eq('user_id', user.id).eq('date', today)
       ])
       if (todoData) setTodos(todoData)
       if (habitData) setHabits(habitData)

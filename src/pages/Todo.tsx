@@ -74,22 +74,27 @@ export default function Todo() {
   const [completedTodos, setCompletedTodos] = useState<Todo[]>([])
   const [editingTodo, setEditingTodo] = useState<Todo | null>(null)
   const [editTitle, setEditTitle] = useState('')
+  const [userId, setUserId] = useState('')
 
   const sensors = useSensors(useSensor(PointerSensor))
 
-  const fetchTodos = async () => {
+  const fetchTodos = async (uid = userId) => {
+    if (!uid) return
     const { data } = await supabase
       .from('todos')
       .select('*')
+      .eq('user_id', uid)
       .eq('is_completed', false)
       .order('position', { ascending: true })
     if (data) setTodos(data)
   }
 
-  const fetchCompletedTodos = async () => {
+  const fetchCompletedTodos = async (uid = userId) => {
+    if (!uid) return
     const { data } = await supabase
       .from('todos')
       .select('*')
+      .eq('user_id', uid)
       .eq('is_completed', true)
       .order('created_at', { ascending: false })
       .limit(20)
@@ -97,17 +102,21 @@ export default function Todo() {
   }
 
   useEffect(() => {
-  fetchTodos()
-  fetchCompletedTodos()
+    const init = async () => {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+      setUserId(user.id)
+      await Promise.all([fetchTodos(user.id), fetchCompletedTodos(user.id)])
+    }
+    init()
   }, [])
 
   const addTodo = async () => {
-    if (!title.trim()) return
+    if (!title.trim() || !userId) return
     setLoading(true)
-    const { data: { user } } = await supabase.auth.getUser()
     await supabase.from('todos').insert({
       title,
-      user_id: user?.id,
+      user_id: userId,
       is_completed: false,
       position: todos.length,
     })
@@ -117,26 +126,29 @@ export default function Todo() {
   }
 
   const toggleTodo = async (id: string, current: boolean) => {
-    await supabase.from('todos').update({ is_completed: !current }).eq('id', id)
+    if (!userId) return
+    await supabase.from('todos').update({ is_completed: !current }).eq('id', id).eq('user_id', userId)
     await fetchTodos()
     await fetchCompletedTodos()
   }
 
   const deleteTodo = async (id: string) => {
-    await supabase.from('todos').delete().eq('id', id)
+    if (!userId) return
+    await supabase.from('todos').delete().eq('id', id).eq('user_id', userId)
     await fetchTodos()
     await fetchCompletedTodos()
   }
 
   const updateTodo = async () => {
-    if (!editingTodo || !editTitle.trim()) return
-    await supabase.from('todos').update({ title: editTitle }).eq('id', editingTodo.id)
+    if (!editingTodo || !editTitle.trim() || !userId) return
+    await supabase.from('todos').update({ title: editTitle }).eq('id', editingTodo.id).eq('user_id', userId)
     await fetchTodos()
       setEditingTodo(null)
       setEditTitle('')
   }
 
   const handleDragEnd = async (event: DragEndEvent) => {
+    if (!userId) return
     const { active, over } = event
     if (!over || active.id === over.id) return
 
@@ -148,7 +160,7 @@ export default function Todo() {
     // DB에 순서 저장
     await Promise.all(
       newTodos.map((todo, index) =>
-        supabase.from('todos').update({ position: index }).eq('id', todo.id)
+        supabase.from('todos').update({ position: index }).eq('id', todo.id).eq('user_id', userId)
       )
     )
   }
