@@ -76,7 +76,7 @@ export default function Stats() {
         return acc
       }, {} as Record<string, number>) || {}
 
-      const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+      const dayNames = ['일', '월', '화', '수', '목', '금', '토']
       const heatmapData: { date: string, count: number }[] = []
       const weeklyArr: { day: string, count: number }[] = []
 
@@ -96,7 +96,7 @@ export default function Stats() {
       setWeeklyData(weeklyArr)
     } catch (err) {
       console.error(err)
-      setError('Failed to load stats. Please try again.')
+      setError('통계를 불러오지 못했습니다. 다시 시도해주세요.')
     } finally {
       setLoading(false)
     }
@@ -123,7 +123,7 @@ export default function Stats() {
     return (
       <div className="flex flex-col items-center justify-center h-64 gap-3">
         <div className="w-8 h-8 rounded-full border-2 border-indigo-600 border-t-transparent animate-spin" />
-        <p className="text-sm text-gray-400">Loading stats...</p>
+        <p className="text-sm text-gray-400">통계를 불러오는 중...</p>
       </div>
     )
   }
@@ -136,7 +136,7 @@ export default function Stats() {
           onClick={fetchStats}
           className="bg-indigo-600 text-white px-4 py-2 rounded-xl text-sm"
         >
-          Retry
+          다시 시도
         </button>
       </div>
     )
@@ -144,21 +144,21 @@ export default function Stats() {
 
   return (
     <div className="p-4 space-y-4">
-      <h2 className="text-2xl font-bold text-gray-800">Stats</h2>
+      <h2 className="text-2xl font-bold text-gray-800">통계</h2>
 
       <div className="grid grid-cols-2 gap-3">
         <div className="bg-indigo-50 rounded-2xl p-4">
-          <p className="text-xs text-indigo-400 font-medium mb-1">Avg monthly completion</p>
+          <p className="text-xs text-indigo-400 font-medium mb-1">이번 달 평균 달성률</p>
           <p className="text-3xl font-bold text-indigo-600">{avgMonthlyRate}%</p>
         </div>
         <div className="bg-orange-50 rounded-2xl p-4">
-          <p className="text-xs text-orange-400 font-medium mb-1">Best streak</p>
-          <p className="text-3xl font-bold text-orange-500">{maxStreak}d</p>
+          <p className="text-xs text-orange-400 font-medium mb-1">최장 연속 기록</p>
+          <p className="text-3xl font-bold text-orange-500">{maxStreak}일</p>
         </div>
       </div>
 
       <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
-        <p className="text-sm font-bold text-gray-700 mb-4">Weekly activity</p>
+        <p className="text-sm font-bold text-gray-700 mb-4">주간 활동량</p>
         <div className="flex items-end gap-2 h-24">
           {weeklyData.map((d, i) => (
             <div key={i} className="flex-1 flex flex-col items-center gap-1">
@@ -173,9 +173,9 @@ export default function Stats() {
       </div>
 
       <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
-        <p className="text-sm font-bold text-gray-700 mb-3">Last 28 days</p>
+        <p className="text-sm font-bold text-gray-700 mb-3">최근 28일</p>
         <div className="grid grid-cols-7 gap-1">
-          {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => (
+          {['일', '월', '화', '수', '목', '금', '토'].map(d => (
             <div key={d} className="text-center text-xs text-gray-400">{d}</div>
           ))}
           {heatmap.length > 0 && Array.from({
@@ -194,14 +194,14 @@ export default function Stats() {
       </div>
 
       <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
-        <p className="text-sm font-bold text-gray-700 mb-3">Habit details</p>
+        <p className="text-sm font-bold text-gray-700 mb-3">습관별 상세</p>
         <div className="space-y-4">
           {habitStats.map(h => (
             <div key={h.id}>
               <div className="flex items-center gap-2 mb-1">
                 <span className="text-lg">{h.icon}</span>
                 <span className="text-sm font-medium text-gray-700 flex-1">{h.title}</span>
-                <span className="text-xs text-orange-400 font-medium">{h.streak}d</span>
+                <span className="text-xs text-orange-400 font-medium">{h.streak}일</span>
               </div>
               <div className="w-full bg-gray-100 rounded-full h-2 mb-1">
                 <div
@@ -210,8 +210,8 @@ export default function Stats() {
                 />
               </div>
               <div className="flex justify-between text-xs text-gray-400">
-                <span>This month: {h.monthlyRate}%</span>
-                <span>Best: {h.maxStreak}d</span>
+                <span>이번 달: {h.monthlyRate}%</span>
+                <span>최장: {h.maxStreak}일</span>
               </div>
             </div>
           ))}
