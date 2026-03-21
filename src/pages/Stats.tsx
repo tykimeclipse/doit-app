@@ -143,80 +143,88 @@ export default function Stats() {
   }
 
   return (
-    <div className="p-4 space-y-4">
-      <h2 className="text-2xl font-bold text-gray-800">통계</h2>
+  <div className="px-6 py-4 space-y-4">
+    {/* 헤더 */}
+    <div>
+      <p className="text-xs font-semibold tracking-widest text-gray-400">ANALYTICS</p>
+      <h2 className="text-3xl font-bold text-gray-900 font-display">Reports</h2>
+    </div>
 
-      <div className="grid grid-cols-2 gap-3">
-        <div className="bg-indigo-50 rounded-2xl p-4">
-          <p className="text-xs text-indigo-400 font-medium mb-1">이번 달 평균 달성률</p>
-          <p className="text-3xl font-bold text-indigo-600">{avgMonthlyRate}%</p>
-        </div>
-        <div className="bg-orange-50 rounded-2xl p-4">
-          <p className="text-xs text-orange-400 font-medium mb-1">최장 연속 기록</p>
-          <p className="text-3xl font-bold text-orange-500">{maxStreak}일</p>
-        </div>
+    {/* 요약 카드 */}
+    <div className="grid grid-cols-2 gap-3">
+      <div className="bg-white rounded-2xl p-4 shadow-sm" style={{borderLeft: '4px solid #2563eb'}}>
+        <p className="text-xs font-semibold tracking-widest text-gray-400 mb-2">이번 달</p>
+        <p className="text-3xl font-bold text-blue-600">{avgMonthlyRate}%</p>
+        <p className="text-xs text-gray-400 mt-1">평균 달성률</p>
       </div>
-
-      <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
-        <p className="text-sm font-bold text-gray-700 mb-4">주간 활동량</p>
-        <div className="flex items-end gap-2 h-24">
-          {weeklyData.map((d, i) => (
-            <div key={i} className="flex-1 flex flex-col items-center gap-1">
-              <div
-                className="w-full bg-indigo-500 rounded-t-md transition-all"
-                style={{ height: `${(d.count / maxCount) * 80}px`, minHeight: d.count > 0 ? '4px' : '0' }}
-              />
-              <span className="text-xs text-gray-400">{d.day}</span>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
-        <p className="text-sm font-bold text-gray-700 mb-3">최근 28일</p>
-        <div className="grid grid-cols-7 gap-1">
-          {['일', '월', '화', '수', '목', '금', '토'].map(d => (
-            <div key={d} className="text-center text-xs text-gray-400">{d}</div>
-          ))}
-          {heatmap.length > 0 && Array.from({
-            length: new Date(`${heatmap[0].date}T00:00:00`).getDay(),
-          }).map((_, i) => (
-            <div key={`empty-${i}`} className="aspect-square" />
-          ))}
-          {heatmap.map((d, i) => (
-            <div
-              key={i}
-              className={`aspect-square rounded-sm ${getHeatColor(d.count)}`}
-              title={`${d.date}: ${d.count}`}
-            />
-          ))}
-        </div>
-      </div>
-
-      <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
-        <p className="text-sm font-bold text-gray-700 mb-3">습관별 상세</p>
-        <div className="space-y-4">
-          {habitStats.map(h => (
-            <div key={h.id}>
-              <div className="flex items-center gap-2 mb-1">
-                <span className="text-lg">{h.icon}</span>
-                <span className="text-sm font-medium text-gray-700 flex-1">{h.title}</span>
-                <span className="text-xs text-orange-400 font-medium">{h.streak}일</span>
-              </div>
-              <div className="w-full bg-gray-100 rounded-full h-2 mb-1">
-                <div
-                  className="bg-indigo-500 h-2 rounded-full transition-all"
-                  style={{ width: `${h.monthlyRate}%` }}
-                />
-              </div>
-              <div className="flex justify-between text-xs text-gray-400">
-                <span>이번 달: {h.monthlyRate}%</span>
-                <span>최장: {h.maxStreak}일</span>
-              </div>
-            </div>
-          ))}
-        </div>
+      <div className="bg-white rounded-2xl p-4 shadow-sm" style={{borderLeft: '4px solid #f59e0b'}}>
+        <p className="text-xs font-semibold tracking-widest text-gray-400 mb-2">최고 스트릭</p>
+        <p className="text-3xl font-bold text-orange-500">{maxStreak}일</p>
+        <p className="text-xs text-gray-400 mt-1">연속 달성</p>
       </div>
     </div>
-  )
+
+    {/* 주간 트렌드 */}
+    <div className="bg-white rounded-2xl p-5 shadow-sm">
+      <p className="text-sm font-bold text-gray-800 mb-4">📈 주간 달성 현황</p>
+      <div className="flex items-end gap-2 h-24">
+        {weeklyData.map((d, i) => (
+          <div key={i} className="flex-1 flex flex-col items-center gap-1">
+            <div className="w-full bg-blue-500 rounded-t-lg transition-all"
+              style={{height: `${(d.count / maxCount) * 80}px`, minHeight: d.count > 0 ? '4px' : '0'}} />
+            <span className="text-xs text-gray-400 font-medium">{d.day}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+
+    {/* 히트맵 */}
+    <div className="bg-white rounded-2xl p-5 shadow-sm">
+      <p className="text-sm font-bold text-gray-800 mb-3">🗓️ 최근 28일 활동</p>
+      <div className="grid grid-cols-7 gap-1">
+        {['일', '월', '화', '수', '목', '금', '토'].map(d => (
+          <div key={d} className="text-center text-xs text-gray-400 font-medium">{d}</div>
+        ))}
+        {heatmap.length > 0 && Array.from({
+          length: new Date(`${heatmap[0].date}T00:00:00`).getDay()
+        }).map((_, i) => <div key={`empty-${i}`} className="aspect-square" />)}
+        {heatmap.map((d, i) => (
+          <div key={i} className={`aspect-square rounded-md ${getHeatColor(d.count)}`}
+            title={`${d.date}: ${d.count}개`} />
+        ))}
+      </div>
+      <div className="flex items-center gap-2 mt-3 justify-end">
+        <span className="text-xs text-gray-400">적음</span>
+        {['bg-gray-100', 'bg-blue-200', 'bg-blue-400', 'bg-blue-600'].map((c, i) => (
+          <div key={i} className={`w-3 h-3 rounded-sm ${c}`} />
+        ))}
+        <span className="text-xs text-gray-400">많음</span>
+      </div>
+    </div>
+
+    {/* 습관별 통계 */}
+    <div className="bg-white rounded-2xl p-5 shadow-sm">
+      <p className="text-sm font-bold text-gray-800 mb-4">🏆 습관별 상세</p>
+      <div className="space-y-5">
+        {habitStats.map(h => (
+          <div key={h.id}>
+            <div className="flex items-center gap-2 mb-2">
+              <span className="text-lg">{h.icon}</span>
+              <span className="text-sm font-semibold text-gray-800 flex-1">{h.title}</span>
+              <span className="text-xs font-bold text-orange-400">🔥 {h.streak}일</span>
+            </div>
+            <div className="w-full rounded-full h-2 mb-1" style={{background: '#f0ece4'}}>
+              <div className="bg-blue-500 h-2 rounded-full transition-all"
+                style={{width: `${h.monthlyRate}%`}} />
+            </div>
+            <div className="flex justify-between text-xs text-gray-400">
+              <span>이번 달 {h.monthlyRate}%</span>
+              <span>최장 {h.maxStreak}일</span>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  </div>
+)
 }

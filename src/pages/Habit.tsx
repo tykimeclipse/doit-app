@@ -61,44 +61,39 @@ function SortableHabit({ habit, isDone, streak, onToggle, onDelete }: {
   onDelete: (id: string) => void
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: habit.id })
-
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-    opacity: isDragging ? 0.5 : 1,
-  }
+  const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.5 : 1 }
 
   return (
-    <div
-      ref={setNodeRef}
-      style={style}
-      className={`flex items-center gap-3 bg-white rounded-xl p-3 shadow-sm border transition-all ${
-        isDone ? 'border-indigo-200 bg-indigo-50' : 'border-gray-100'
-      }`}
-    >
-      <button {...attributes} {...listeners} className="text-gray-300 hover:text-gray-400 cursor-grab active:cursor-grabbing px-1">
+    <div ref={setNodeRef} style={style}
+      className="bg-white rounded-2xl p-4 flex items-center gap-3 shadow-sm transition-all">
+      <button {...attributes} {...listeners} className="text-gray-200 hover:text-gray-400 cursor-grab active:cursor-grabbing">
         ⠿
       </button>
-      <button
-        onClick={() => onToggle(habit)}
-        className={`w-8 h-8 rounded-xl flex items-center justify-center text-xl transition-all ${
-          isDone ? 'bg-indigo-600' : 'bg-gray-100'
-        }`}
-      >
+      <button onClick={() => onToggle(habit)}
+        className="w-10 h-10 rounded-xl flex items-center justify-center text-xl flex-shrink-0 transition-all"
+        style={{background: isDone ? '#f0fdf4' : '#f5f0e8'}}>
         {habit.icon}
       </button>
       <div className="flex-1">
-        <p className={`text-sm font-medium ${isDone ? 'text-indigo-600' : 'text-gray-700'}`}>
+        <p className={`text-sm font-semibold ${isDone ? 'text-green-600' : 'text-gray-800'}`}>
           {habit.title}
         </p>
         <p className="text-xs text-gray-400">
-          {isDone ? '✅ 완료' : '미완료'}
+          {isDone ? 'Completed' : 'Incomplete'}
           {streak > 0 && <span className="text-orange-400 ml-2">🔥 {streak}일 연속</span>}
         </p>
       </div>
-      <button onClick={() => onDelete(habit.id)} className="text-gray-300 hover:text-red-400 text-lg">
-        ×
+      <button onClick={() => onToggle(habit)}
+        className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 transition-all ${
+          isDone ? 'bg-green-500' : 'bg-gray-100'
+        }`}>
+        {isDone && (
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3">
+            <polyline points="20 6 9 17 4 12"/>
+          </svg>
+        )}
       </button>
+      <button onClick={() => onDelete(habit.id)} className="text-gray-200 hover:text-red-400 text-lg ml-1">×</button>
     </div>
   )
 }
@@ -398,113 +393,118 @@ export default function Habit() {
   const habitRate = habits.length > 0 ? Math.round((logs.length / habits.length) * 100) : 0
 
   return (
-    <div className="p-4">
-      {/* 토스트 */}
-      {toast && <Toast message={toast.message} type={toast.type} />}
+  <div className="px-6 py-4">
+    {/* 토스트 */}
+    {toast && <Toast message={toast.message} type={toast.type} />}
 
-      {/* 헤더 */}
-      <div className="flex justify-between items-center mb-4">
-        <h2 className="text-2xl font-bold text-gray-800">습관 🔄</h2>
+    {/* 헤더 */}
+    <div className="flex justify-between items-start mb-6">
+      <div>
+        <p className="text-xs font-semibold tracking-widest text-gray-400">HABITS</p>
+        <h2 className="text-3xl font-bold text-gray-900 font-display">Habits</h2>
+        <p className="text-sm text-gray-400 mt-0.5">Curating your best self, daily.</p>
+      </div>
+      <div className="flex gap-2 mt-1">
+        <button onClick={openEditModal} disabled={modalLoading}
+          className="px-3 py-2 rounded-xl text-xs font-semibold text-gray-500 hover:bg-gray-100 disabled:opacity-50"
+          style={{background: '#ede8df'}}>
+          {modalLoading ? '⏳' : 'Edit'}
+        </button>
+        <button onClick={() => setShowForm(!showForm)}
+          className="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center text-lg font-light hover:bg-blue-700">
+          +
+        </button>
+      </div>
+    </div>
+
+    {/* 달성률 카드 */}
+    {habits.length > 0 && (
+      <div className="bg-white rounded-2xl p-5 shadow-sm mb-4">
+        <div className="flex justify-between items-center mb-3">
+          <div>
+            <p className="text-4xl font-bold text-blue-600">{habitRate}%</p>
+            <p className="text-xs font-semibold tracking-widest text-gray-400 mt-1">DAILY COMPLETION</p>
+            <p className="text-sm text-gray-500 mt-1">
+              {habits.length - logs.length > 0
+                ? `${habits.length - logs.length} more to reach 100%`
+                : 'All done! 🎉'}
+            </p>
+          </div>
+        </div>
+        <div className="w-full rounded-full h-2.5" style={{background: '#f0ece4'}}>
+          <div className="bg-blue-600 h-2.5 rounded-full transition-all" style={{width: `${habitRate}%`}} />
+        </div>
+      </div>
+    )}
+
+    {/* 습관 추가 폼 */}
+    {showForm && (
+      <div className="bg-white rounded-2xl p-4 shadow-sm mb-4">
+        <p className="text-sm font-semibold text-gray-600 mb-3">아이콘 선택</p>
+        <div className="flex gap-2 flex-wrap mb-3">
+          {icons.map(i => (
+            <button key={i} onClick={() => setIcon(i)}
+              className={`text-xl p-2 rounded-xl transition-all ${icon === i ? 'bg-blue-100' : 'hover:bg-gray-100'}`}
+              style={{background: icon === i ? '#dbeafe' : '#f5f0e8'}}>
+              {i}
+            </button>
+          ))}
+        </div>
+        <input type="text" placeholder="습관 이름 입력..."
+          value={title} onChange={e => setTitle(e.target.value)}
+          onKeyDown={e => e.key === 'Enter' && addHabit()}
+          className="w-full rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300 mb-3"
+          style={{background: '#f5f0e8', border: '1.5px solid #e5ddd0'}}
+        />
         <div className="flex gap-2">
-          <button
-            onClick={openEditModal}
-            disabled={modalLoading}
-            className="bg-gray-100 text-gray-600 px-4 py-2 rounded-xl text-sm font-medium hover:bg-gray-200 disabled:opacity-50"
-          >
-            {modalLoading ? '⏳' : '📅 수정'}
+          <button onClick={addHabit} disabled={loading}
+            className="flex-1 bg-blue-600 text-white py-2 rounded-xl text-sm font-bold hover:bg-blue-700 disabled:opacity-50">
+            저장
           </button>
-          <button
-            onClick={() => setShowForm(!showForm)}
-            className="bg-indigo-600 text-white px-4 py-2 rounded-xl text-sm font-medium hover:bg-indigo-700"
-          >
-            + 추가
+          <button onClick={() => setShowForm(false)}
+            className="flex-1 py-2 rounded-xl text-sm font-medium text-gray-500"
+            style={{background: '#f5f0e8'}}>
+            취소
           </button>
         </div>
       </div>
+    )}
 
-      {/* 달성률 바 */}
-      {habits.length > 0 && (
-        <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 mb-4">
-          <div className="flex justify-between items-center mb-2">
-            <p className="text-sm font-medium text-gray-600">오늘 달성률</p>
-            <p className="text-sm font-bold text-indigo-600">{habitRate}%</p>
-          </div>
-          <div className="w-full bg-gray-100 rounded-full h-3">
-            <div className="bg-indigo-600 h-3 rounded-full transition-all" style={{ width: `${habitRate}%` }} />
-          </div>
-          <p className="text-xs text-gray-400 mt-1">{logs.length} / {habits.length} 완료</p>
-        </div>
-      )}
-
-      {/* 습관 추가 폼 */}
-      {showForm && (
-        <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 mb-4">
-          <p className="text-sm font-medium text-gray-600 mb-3">아이콘 선택</p>
-          <div className="flex gap-2 flex-wrap mb-3">
-            {icons.map(i => (
-              <button key={i} onClick={() => setIcon(i)}
-                className={`text-xl p-2 rounded-lg ${icon === i ? 'bg-indigo-100' : 'hover:bg-gray-100'}`}>
-                {i}
+    {/* 습관 목록 */}
+    <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+      <SortableContext items={habits.map(h => h.id)} strategy={verticalListSortingStrategy}>
+        <div className="space-y-2">
+          {habits.length === 0 && (
+            <div className="bg-white rounded-2xl p-10 text-center shadow-sm">
+              <p className="text-2xl mb-2">+</p>
+              <button onClick={() => setShowForm(true)} className="text-sm text-blue-600 font-semibold">
+                Curate a New Habit
               </button>
-            ))}
-          </div>
-          <input
-            type="text"
-            placeholder="습관 이름 입력..."
-            value={title}
-            onChange={e => setTitle(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && addHabit()}
-            className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300 mb-3"
-          />
-          <div className="flex gap-2">
-            <button onClick={addHabit} disabled={loading}
-              className="flex-1 bg-indigo-600 text-white py-2 rounded-xl text-sm font-medium hover:bg-indigo-700 disabled:opacity-50">
-              저장
+            </div>
+          )}
+          {habits.map(habit => (
+            <SortableHabit key={habit.id} habit={habit}
+              isDone={isDone(habit.id)} streak={getStreak(habit.id)}
+              onToggle={toggleHabit} onDelete={deleteHabit} />
+          ))}
+          {habits.length > 0 && (
+            <button onClick={() => setShowForm(true)}
+              className="w-full bg-white rounded-2xl p-4 text-center shadow-sm text-gray-400 hover:text-blue-600 transition-all border-2 border-dashed"
+              style={{borderColor: '#e5ddd0'}}>
+              + Curate a New Habit
             </button>
-            <button onClick={() => setShowForm(false)}
-              className="flex-1 bg-gray-100 text-gray-500 py-2 rounded-xl text-sm font-medium hover:bg-gray-200">
-              취소
-            </button>
-          </div>
+          )}
         </div>
-      )}
+      </SortableContext>
+    </DndContext>
 
-      {/* 습관 목록 */}
-      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-        <SortableContext items={habits.map(h => h.id)} strategy={verticalListSortingStrategy}>
-          <div className="space-y-2">
-            {habits.length === 0 && (
-              <p className="text-center text-gray-400 text-sm py-10">습관을 추가해보세요! 🔄</p>
-            )}
-            {habits.map(habit => (
-              <SortableHabit
-                key={habit.id}
-                habit={habit}
-                isDone={isDone(habit.id)}
-                streak={getStreak(habit.id)}
-                onToggle={toggleHabit}
-                onDelete={deleteHabit}
-              />
-            ))}
-          </div>
-        </SortableContext>
-      </DndContext>
-
-      {/* 주간 수정 모달 */}
-      {showEditModal && (
-        <HabitEditModal
-          habits={habits}
-          weekDates={weekDates}
-          weekLogs={weekLogs}
-          today={today}
-          userId={userId}
-          onClose={() => setShowEditModal(false)}
-          onUpdate={(updatedLogs) => {
-            setWeekLogs(updatedLogs)
-            fetchLogs()
-          }}
-        />
-      )}
-    </div>
-  )
+    {/* 주간 수정 모달 */}
+    {showEditModal && (
+      <HabitEditModal habits={habits} weekDates={weekDates} weekLogs={weekLogs}
+        today={today} userId={userId}
+        onClose={() => setShowEditModal(false)}
+        onUpdate={(updatedLogs) => { setWeekLogs(updatedLogs); fetchLogs() }} />
+    )}
+  </div>
+)
 }
