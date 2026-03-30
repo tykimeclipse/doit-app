@@ -1,16 +1,1 @@
 @import "tailwindcss";
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Serif+Display:ital@0;1&display=swap');
-
-* {
-    -webkit-font-smoothing: antialiased;
-}
-
-body {
-    background-color: #F5F0E8;
-    font-family: 'DM Sans', sans-serif;
-    color: #1a1a2e;
-}
-
-.font-display {
-    font-family: 'DM Serif Display', serif;
-}
