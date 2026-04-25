@@ -6,13 +6,19 @@ import Todo from './pages/Todo'
 import Habit from './pages/Habit'
 import Stats from './pages/Stats'
 import Planner from './pages/Planner'
-
+import ResetPassword from './pages/ResetPassword'
 
 function App() {
   const [session, setSession] = useState<any>(null)
   const [tab, setTab] = useState('home')
+  const [isRecovery, setIsRecovery] = useState(false)
 
   useEffect(() => {
+    // 비밀번호 재설정 링크 감지
+    if (window.location.hash.includes('type=recovery')) {
+      setIsRecovery(true)
+    }
+
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session)
     })
@@ -21,13 +27,14 @@ function App() {
     })
   }, [])
 
+  if (isRecovery) return <ResetPassword />
   if (!session) return <Auth />
 
   return (
     <div className={`min-h-screen bg-gray-50 flex flex-col ${tab === 'planner' ? 'max-w-5xl' : 'max-w-lg'} mx-auto`}>
       {/* 상단 헤더 */}
       <header className="bg-white border-b border-gray-100 px-6 py-4 flex justify-between items-center">
-        <h1 className="text-xl font-bold text-indigo-600">DoIt 🚀</h1>
+        <h1 className="text-xl font-bold text-indigo-600 cursor-pointer" onClick={() => setTab('home')}>DoIt 🚀</h1>
         <button
           onClick={() => supabase.auth.signOut()}
           className="text-xs text-gray-400 hover:text-red-400"
@@ -53,7 +60,6 @@ function App() {
           { id: 'habit', label: '습관', icon: '🔥' },
           { id: 'planner', label: '플래너', icon: '📅' },
           { id: 'stats', label: '통계', icon: '📊'},
-          
         ].map(item => (
           <button
             key={item.id}
