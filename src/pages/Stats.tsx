@@ -172,7 +172,7 @@ export default function Stats() {
               </div>
               <div className="flex justify-between text-xs text-gray-400">
                 <span>이번 달 {h.monthlyRate}%</span>
-                <span>최장 {h.maxStreak}일</span>
+                <span>최장기록 {h.maxStreak}일</span>
               </div>
             </div>
           ))}
