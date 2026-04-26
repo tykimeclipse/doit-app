@@ -185,6 +185,7 @@ export default function Planner() {
           onSelectSlot={handleSelectSlot}
           onSelectEvent={handleSelectEvent}
           selectable
+          longPressThreshold={10}
           eventPropGetter={eventStyleGetter}
           messages={messages}
           culture="ko"
