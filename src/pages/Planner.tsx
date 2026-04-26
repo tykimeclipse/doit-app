@@ -40,7 +40,6 @@ export default function Planner() {
   const [events, setEvents] = useState<PlannerEvent[]>([])
   const [userId, setUserId] = useState('')
   const [showModal, setShowModal] = useState(false)
-  const [selectedSlot, setSelectedSlot] = useState<{ start: Date, end: Date } | null>(null)
   const [selectedEvent, setSelectedEvent] = useState<PlannerEvent | null>(null)
   const [title, setTitle] = useState('')
   const [memo, setMemo] = useState('')
@@ -84,7 +83,6 @@ export default function Planner() {
 
   // 빈 슬롯 클릭 → 새 일정 추가
   const handleSelectSlot = ({ start, end }: { start: Date, end: Date }) => {
-    setSelectedSlot({ start, end })
     setSelectedEvent(null)
     setTitle('')
     setMemo('')
@@ -97,7 +95,6 @@ export default function Planner() {
   // 기존 이벤트 클릭 → 수정
   const handleSelectEvent = (event: PlannerEvent) => {
     setSelectedEvent(event)
-    setSelectedSlot(null)
     setTitle(event.title)
     setMemo(event.memo)
     setColor(event.color)
@@ -145,15 +142,6 @@ export default function Planner() {
     setShowModal(false)
   }
 
-  // 드래그앤드롭으로 이벤트 이동
-  const handleEventDrop = async ({ event, start, end }: { event: PlannerEvent, start: Date, end: Date }) => {
-    await supabase.from('planner').update({
-      start_time: start.toISOString(),
-      end_time: end.toISOString(),
-    }).eq('id', event.id)
-    await fetchEvents(userId)
-  }
-
   const messages = {
     today: '오늘',
     previous: '◀',
@@ -196,7 +184,6 @@ export default function Planner() {
           onView={(v: any) => setView(v)}
           onSelectSlot={handleSelectSlot}
           onSelectEvent={handleSelectEvent}
-          onEventDrop={handleEventDrop}
           selectable
           eventPropGetter={eventStyleGetter}
           messages={messages}
