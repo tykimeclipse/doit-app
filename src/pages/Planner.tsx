@@ -159,7 +159,7 @@ export default function Planner() {
   return (
     <div className="flex flex-col" style={{height: 'calc(100dvh - 180px)'}}>
       {/* 헤더 */}
-      <div className="px-4 py-3 flex justify-between items-center border-b border-gray-100 bg-white">
+      <div className="px-4 py-3 flex justify-between items-center">
         <div>
           <p className="text-xs font-semibold tracking-widest text-gray-400">PLANNER</p>
           <h2 className="text-xl font-bold text-gray-800">플래너 📅</h2>
@@ -173,7 +173,7 @@ export default function Planner() {
       </div>
 
       {/* 캘린더 */}
-      <div className="flex-1 overflow-hidden p-2">
+      <div className="flex-1 overflow-hidden p-2 bg-white rounded-2xl shadow-sm mx-2 mb-2">
         <Calendar
           localizer={localizer}
           events={events}
