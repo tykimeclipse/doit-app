@@ -1,242 +1,297 @@
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { supabase } from '../supabase'
+import { Calendar, dateFnsLocalizer } from 'react-big-calendar'
+import { format, parse, startOfWeek, getDay } from 'date-fns'
+import { ko } from 'date-fns/locale'
+import 'react-big-calendar/lib/css/react-big-calendar.css'
 
-interface PlannerItem {
+const localizer = dateFnsLocalizer({
+  format,
+  parse,
+  startOfWeek: () => startOfWeek(new Date(), { weekStartsOn: 0 }),
+  getDay,
+  locales: { ko },
+})
+
+interface PlannerEvent {
   id: string
-  day_of_week: number
-  time_slot: string
-  content: string
+  title: string
+  start: Date
+  end: Date
   color: string
+  memo: string
 }
 
-const DAYS = ['일', '월', '화', '수', '목', '금', '토']
-const COLORS = ['#6366f1', '#f59e0b', '#10b981', '#ef4444', '#8b5cf6', '#06b6d4', '#f97316']
+const COLORS = ['#2563eb', '#10b981', '#ef4444', '#8b5cf6', '#f59e0b', '#06b6d4', '#f97316']
 
-const TIME_SLOTS: string[] = []
-for (let h = 6; h <= 23; h++) {
-  TIME_SLOTS.push(`${String(h).padStart(2, '0')}:00`)
-  TIME_SLOTS.push(`${String(h).padStart(2, '0')}:30`)
-}
+// 이벤트 스타일
+const eventStyleGetter = (event: PlannerEvent) => ({
+  style: {
+    backgroundColor: event.color,
+    borderRadius: '8px',
+    border: 'none',
+    color: 'white',
+    fontSize: '12px',
+    padding: '2px 6px',
+  }
+})
 
 export default function Planner() {
-  const [items, setItems] = useState<PlannerItem[]>([])
-  const [editing, setEditing] = useState<{day: number, time: string} | null>(null)
-  const [inputValue, setInputValue] = useState('')
-  const [selectedColor, setSelectedColor] = useState('#6366f1')
-  const [editingItem, setEditingItem] = useState<PlannerItem | null>(null)
+  const [events, setEvents] = useState<PlannerEvent[]>([])
   const [userId, setUserId] = useState('')
-  const inputRef = useRef<HTMLInputElement>(null)
+  const [showModal, setShowModal] = useState(false)
+  const [selectedSlot, setSelectedSlot] = useState<{ start: Date, end: Date } | null>(null)
+  const [selectedEvent, setSelectedEvent] = useState<PlannerEvent | null>(null)
+  const [title, setTitle] = useState('')
+  const [memo, setMemo] = useState('')
+  const [color, setColor] = useState('#2563eb')
+  const [startTime, setStartTime] = useState('')
+  const [endTime, setEndTime] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [view, setView] = useState<'month' | 'week' | 'day'>('week')
 
-  const today = new Date().getDay()
-
-  const fetchItems = async (uid = userId) => {
-    if (!uid) return
-    const { data } = await supabase.from('planner').select('*').eq('user_id', uid)
-    if (data) setItems(data)
-  }
+  const fetchEvents = useCallback(async (uid: string) => {
+    const { data } = await supabase
+      .from('planner')
+      .select('*')
+      .eq('user_id', uid)
+    if (data) {
+      setEvents(data.map(e => ({
+        id: e.id,
+        title: e.title,
+        start: new Date(e.start_time),
+        end: new Date(e.end_time),
+        color: e.color,
+        memo: e.memo || '',
+      })))
+    }
+  }, [])
 
   useEffect(() => {
     const init = async () => {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
       setUserId(user.id)
-      await fetchItems(user.id)
+      await fetchEvents(user.id)
     }
     init()
-  }, [])
+  }, [fetchEvents])
 
-  useEffect(() => {
-    if (editing && inputRef.current) {
-      inputRef.current.focus()
-    }
-  }, [editing])
-
-  const getItem = (day: number, time: string) =>
-    items.filter(i => i.day_of_week === day && i.time_slot === time)
-
-  const handleCellClick = (day: number, time: string) => {
-    setEditing({ day, time })
-    setInputValue('')
-    setSelectedColor('#6366f1')
-    setEditingItem(null)
+  const formatDateTimeLocal = (date: Date) => {
+    const pad = (n: number) => String(n).padStart(2, '0')
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`
   }
 
-  const handleItemClick = (e: React.MouseEvent, item: PlannerItem) => {
-    e.stopPropagation()
-    setEditing({ day: item.day_of_week, time: item.time_slot })
-    setInputValue(item.content)
-    setSelectedColor(item.color)
-    setEditingItem(item)
+  // 빈 슬롯 클릭 → 새 일정 추가
+  const handleSelectSlot = ({ start, end }: { start: Date, end: Date }) => {
+    setSelectedSlot({ start, end })
+    setSelectedEvent(null)
+    setTitle('')
+    setMemo('')
+    setColor('#2563eb')
+    setStartTime(formatDateTimeLocal(start))
+    setEndTime(formatDateTimeLocal(end))
+    setShowModal(true)
+  }
+
+  // 기존 이벤트 클릭 → 수정
+  const handleSelectEvent = (event: PlannerEvent) => {
+    setSelectedEvent(event)
+    setSelectedSlot(null)
+    setTitle(event.title)
+    setMemo(event.memo)
+    setColor(event.color)
+    setStartTime(formatDateTimeLocal(event.start))
+    setEndTime(formatDateTimeLocal(event.end))
+    setShowModal(true)
   }
 
   const handleSave = async () => {
-    if (!editing || !inputValue.trim() || !userId) {
-      setEditing(null)
-      return
+    if (!title.trim() || !userId) return
+    setLoading(true)
+
+    const start = new Date(startTime)
+    const end = new Date(endTime)
+
+    try {
+      if (selectedEvent) {
+        // 수정
+        await supabase.from('planner').update({
+          title, memo, color,
+          start_time: start.toISOString(),
+          end_time: end.toISOString(),
+        }).eq('id', selectedEvent.id)
+      } else {
+        // 추가
+        await supabase.from('planner').insert({
+          user_id: userId, title, memo, color,
+          start_time: start.toISOString(),
+          end_time: end.toISOString(),
+        })
+      }
+      await fetchEvents(userId)
+      setShowModal(false)
+    } catch {
+      alert('저장 중 오류가 발생했어요.')
+    } finally {
+      setLoading(false)
     }
-
-    if (editingItem) {
-      await supabase.from('planner').update({
-        content: inputValue,
-        color: selectedColor
-      }).eq('id', editingItem.id).eq('user_id', userId)
-    } else {
-      await supabase.from('planner').insert({
-        user_id: userId,
-        day_of_week: editing.day,
-        time_slot: editing.time,
-        content: inputValue,
-        color: selectedColor
-      })
-    }
-    await fetchItems()
-    setEditing(null)
-    setEditingItem(null)
   }
 
-  const handleDelete = async (e: React.MouseEvent, id: string) => {
-    if (!userId) return
-    e.stopPropagation()
-    await supabase.from('planner').delete().eq('id', id).eq('user_id', userId)
-    await fetchItems()
-    setEditing(null)
+  const handleDelete = async () => {
+    if (!selectedEvent) return
+    await supabase.from('planner').delete().eq('id', selectedEvent.id)
+    await fetchEvents(userId)
+    setShowModal(false)
   }
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') handleSave()
-    if (e.key === 'Escape') setEditing(null)
+  // 드래그앤드롭으로 이벤트 이동
+  const handleEventDrop = async ({ event, start, end }: { event: PlannerEvent, start: Date, end: Date }) => {
+    await supabase.from('planner').update({
+      start_time: start.toISOString(),
+      end_time: end.toISOString(),
+    }).eq('id', event.id)
+    await fetchEvents(userId)
   }
 
-  // 현재 시간 슬롯
-  const now = new Date()
-  const currentSlot = `${String(now.getHours()).padStart(2, '0')}:${now.getMinutes() < 30 ? '00' : '30'}`
+  const messages = {
+    today: '오늘',
+    previous: '◀',
+    next: '▶',
+    month: '월',
+    week: '주',
+    day: '일',
+    agenda: '목록',
+    date: '날짜',
+    time: '시간',
+    event: '일정',
+    noEventsInRange: '일정이 없어요',
+  }
 
   return (
-    <div className="flex flex-col" style={{height: 'calc(100vh - 180px)'}}>
+    <div className="flex flex-col" style={{height: 'calc(100dvh - 180px)'}}>
       {/* 헤더 */}
-      <div className="px-4 py-3 border-b border-gray-100">
-        <h2 className="text-xl font-bold text-gray-800">주간 플래너 📅</h2>
-        <p className="text-xs text-gray-400 mt-0.5">셀을 탭해서 일정을 추가하세요</p>
+      <div className="px-4 py-3 flex justify-between items-center border-b border-gray-100 bg-white">
+        <div>
+          <p className="text-xs font-semibold tracking-widest text-gray-400">PLANNER</p>
+          <h2 className="text-xl font-bold text-gray-800">플래너 📅</h2>
+        </div>
+        <button
+          onClick={() => handleSelectSlot({ start: new Date(), end: new Date(Date.now() + 3600000) })}
+          className="bg-indigo-600 text-white px-4 py-2 rounded-xl text-sm font-medium hover:bg-indigo-700"
+        >
+          + 일정 추가
+        </button>
       </div>
 
-      {/* 테이블 */}
-      <div className="overflow-auto flex-1">
-        <table className="w-full border-collapse" style={{minWidth: '600px'}}>
-          <thead className="sticky top-0 z-10 bg-white">
-            <tr>
-              <th className="border border-gray-100 bg-gray-50 text-xs text-gray-400 font-medium p-2 w-14 sticky left-0 z-20">
-                시간
-              </th>
-              {DAYS.map((day, i) => (
-                <th key={i}
-                  className={`border border-gray-100 text-xs font-semibold p-2 ${
-                    i === today
-                      ? 'bg-indigo-600 text-white'
-                      : i === 0 ? 'bg-red-50 text-red-400'
-                      : i === 6 ? 'bg-blue-50 text-blue-400'
-                      : 'bg-gray-50 text-gray-600'
-                  }`}>
-                  {day}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {TIME_SLOTS.map(time => (
-              <tr key={time} className={time === currentSlot && today >= 0 ? 'bg-yellow-50' : ''}>
-                <td className="border border-gray-100 text-xs text-gray-400 p-1 text-center w-14 bg-gray-50 font-medium sticky left-0 z-10">
-                  {time}
-                </td>
-                {DAYS.map((_, dayIndex) => {
-                  const cellItems = getItem(dayIndex, time)
-                  const isEditing = editing?.day === dayIndex && editing?.time === time
-
-                  return (
-                    <td
-                      key={dayIndex}
-                      onClick={() => handleCellClick(dayIndex, time)}
-                      className="border border-gray-100 p-1 align-top cursor-pointer hover:bg-indigo-50 transition-colors"
-                      style={{minHeight: '32px', minWidth: '96px', maxWidth: '96px', width: '96px'}}
-                    >
-                      {/* 기존 항목들 */}
-                      {cellItems.map(item => (
-                        <div
-                          key={item.id}
-                          onClick={e => handleItemClick(e, item)}
-                          className="text-xs rounded px-1 py-0.5 mb-0.5 text-white flex items-center justify-between group cursor-pointer"
-                          style={{background: item.color}}
-                        >
-                          <span className="truncate flex-1">{item.content}</span>
-                          <button
-                            onClick={e => handleDelete(e, item.id)}
-                            className="ml-1 opacity-0 group-hover:opacity-100 text-white hover:text-red-200 font-bold"
-                          >
-                            ×
-                          </button>
-                        </div>
-                      ))}
-
-                      {/* 인라인 편집 */}
-                      {isEditing && (
-                        <div onClick={e => e.stopPropagation()} className="relative z-20">
-                          <div className="absolute top-0 left-0 bg-white rounded-xl shadow-xl border border-indigo-200 p-3 z-30"
-                            style={{width: '180px'}}>
-                            <input
-                              ref={inputRef}
-                              value={inputValue}
-                              onChange={e => setInputValue(e.target.value)}
-                              onKeyDown={handleKeyDown}
-                              placeholder="일정 입력..."
-                              className="w-full text-xs border border-gray-200 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-300 mb-2"
-                            />
-                            {/* 색상 선택 */}
-                            <div className="flex gap-1 mb-2">
-                              {COLORS.map(color => (
-                                <button
-                                  key={color}
-                                  onClick={() => setSelectedColor(color)}
-                                  className="w-5 h-5 rounded-full transition-transform"
-                                  style={{
-                                    background: color,
-                                    transform: selectedColor === color ? 'scale(1.3)' : 'scale(1)',
-                                    border: selectedColor === color ? '2px solid #1e1e2e' : 'none'
-                                  }}
-                                />
-                              ))}
-                            </div>
-                            <div className="flex gap-1">
-                              <button
-                                onClick={handleSave}
-                                className="flex-1 bg-indigo-600 text-white text-xs py-1 rounded-lg hover:bg-indigo-700"
-                              >
-                                저장
-                              </button>
-                              {editingItem && (
-                                <button
-                                  onClick={e => handleDelete(e, editingItem.id)}
-                                  className="flex-1 bg-red-100 text-red-500 text-xs py-1 rounded-lg hover:bg-red-200"
-                                >
-                                  삭제
-                                </button>
-                              )}
-                              <button
-                                onClick={() => setEditing(null)}
-                                className="flex-1 bg-gray-100 text-gray-500 text-xs py-1 rounded-lg hover:bg-gray-200"
-                              >
-                                취소
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-                      )}
-                    </td>
-                  )
-                })}
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      {/* 캘린더 */}
+      <div className="flex-1 overflow-hidden p-2">
+        <Calendar
+          localizer={localizer}
+          events={events}
+          startAccessor="start"
+          endAccessor="end"
+          style={{ height: '100%' }}
+          view={view}
+          onView={(v: any) => setView(v)}
+          onSelectSlot={handleSelectSlot}
+          onSelectEvent={handleSelectEvent}
+          onEventDrop={handleEventDrop}
+          selectable
+          eventPropGetter={eventStyleGetter}
+          messages={messages}
+          culture="ko"
+          popup
+        />
       </div>
+
+      {/* 일정 추가/수정 모달 */}
+      {showModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-5">
+            <h3 className="font-bold text-gray-800 mb-4">
+              {selectedEvent ? '일정 수정' : '일정 추가'}
+            </h3>
+
+            <div className="space-y-3">
+              {/* 제목 */}
+              <input
+                type="text"
+                placeholder="일정 제목"
+                value={title}
+                onChange={e => setTitle(e.target.value)}
+                autoFocus
+                className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300"
+              />
+
+              {/* 시작 시간 */}
+              <div>
+                <p className="text-xs text-gray-400 mb-1">시작</p>
+                <input
+                  type="datetime-local"
+                  value={startTime}
+                  onChange={e => setStartTime(e.target.value)}
+                  className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300"
+                />
+              </div>
+
+              {/* 종료 시간 */}
+              <div>
+                <p className="text-xs text-gray-400 mb-1">종료</p>
+                <input
+                  type="datetime-local"
+                  value={endTime}
+                  onChange={e => setEndTime(e.target.value)}
+                  className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300"
+                />
+              </div>
+
+              {/* 메모 */}
+              <textarea
+                placeholder="메모 (선택)"
+                value={memo}
+                onChange={e => setMemo(e.target.value)}
+                rows={2}
+                className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300 resize-none"
+              />
+
+              {/* 색상 선택 */}
+              <div>
+                <p className="text-xs text-gray-400 mb-2">색상</p>
+                <div className="flex gap-2">
+                  {COLORS.map(c => (
+                    <button key={c} onClick={() => setColor(c)}
+                      className="w-7 h-7 rounded-full transition-transform"
+                      style={{
+                        background: c,
+                        transform: color === c ? 'scale(1.3)' : 'scale(1)',
+                        border: color === c ? '2px solid #1e1e2e' : 'none'
+                      }} />
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* 버튼 */}
+            <div className="flex gap-2 mt-4">
+              <button onClick={handleSave} disabled={loading}
+                className="flex-1 bg-indigo-600 text-white py-2.5 rounded-xl text-sm font-medium hover:bg-indigo-700 disabled:opacity-50">
+                {loading ? '저장 중...' : '저장'}
+              </button>
+              {selectedEvent && (
+                <button onClick={handleDelete}
+                  className="flex-1 bg-red-50 text-red-500 py-2.5 rounded-xl text-sm font-medium hover:bg-red-100">
+                  삭제
+                </button>
+              )}
+              <button onClick={() => setShowModal(false)}
+                className="flex-1 bg-gray-100 text-gray-500 py-2.5 rounded-xl text-sm font-medium hover:bg-gray-200">
+                취소
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
