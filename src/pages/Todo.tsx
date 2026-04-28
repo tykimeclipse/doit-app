@@ -14,6 +14,8 @@ interface Todo {
   title: string
   is_completed: boolean
   position: number
+  completed_at: string | null
+
 }
 
 function SortableItem({ todo, onToggle, onDelete, onEdit }: {
@@ -73,16 +75,16 @@ export default function Todo({ userId }: { userId: string }) {
   }
 
   const fetchCompletedTodos = async () => {
-    if (!userId) return
-    const { data } = await supabase
-      .from('todos')
-      .select('*')
-      .eq('user_id', userId)
-      .eq('is_completed', true)
-      .order('created_at', { ascending: false })
-      .limit(20)
-    if (data) setCompletedTodos(data)
-  }
+  if (!userId) return
+  const { data } = await supabase
+    .from('todos')
+    .select('*')
+    .eq('user_id', userId)
+    .eq('is_completed', true)
+    .order('completed_at', { ascending: false, nullsFirst: false })
+    .limit(20)
+  if (data) setCompletedTodos(data)
+}
 
   useEffect(() => {
     fetchTodos()
@@ -101,10 +103,16 @@ export default function Todo({ userId }: { userId: string }) {
   }
 
   const toggleTodo = async (id: string, current: boolean) => {
-    await supabase.from('todos').update({ is_completed: !current }).eq('id', id).eq('user_id', userId)
-    await fetchTodos()
-    await fetchCompletedTodos()
-  }
+  const { data, error } = await supabase.from('todos').update({ 
+    is_completed: !current,
+    completed_at: !current ? new Date().toISOString() : null
+  }).eq('id', id).eq('user_id', userId).select()
+  
+  console.log('toggleTodo result:', data, error)
+  
+  await fetchTodos()
+  await fetchCompletedTodos()
+}
 
   const deleteTodo = async (id: string) => {
     await supabase.from('todos').delete().eq('id', id).eq('user_id', userId)
@@ -208,7 +216,14 @@ export default function Todo({ userId }: { userId: string }) {
                     className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 bg-indigo-600 border-indigo-600 text-white">
                     ✓
                   </button>
-                  <span className="flex-1 text-sm text-gray-700">{todo.title}</span>
+                  <span className="flex-1 text-sm text-gray-700">
+  {todo.title}
+  {todo.completed_at && (
+    <span className="text-xs text-gray-400 ml-1">
+      ({new Date(todo.completed_at).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })})
+    </span>
+  )}
+</span>
                   <button onClick={() => deleteTodo(todo.id)}
                     className="text-gray-300 hover:text-red-400 text-lg">×</button>
                 </div>

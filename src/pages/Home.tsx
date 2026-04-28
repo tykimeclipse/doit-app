@@ -5,6 +5,7 @@ export default function Home({ userId }: { userId: string }) {
   const [todos, setTodos] = useState<any[]>([])
   const [habits, setHabits] = useState<any[]>([])
   const [logs, setLogs] = useState<any[]>([])
+  const [completedTodos, setCompletedTodos] = useState<any[]>([])
 
   const now = new Date()
   const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
@@ -15,14 +16,16 @@ export default function Home({ userId }: { userId: string }) {
   useEffect(() => {
     if (!userId) return
     const fetchAll = async () => {
-      const [{ data: todoData }, { data: habitData }, { data: logData }] = await Promise.all([
-        supabase.from('todos').select('*').eq('user_id', userId).eq('is_completed', false).order('position', { ascending: true }),
-        supabase.from('habits').select('*').eq('user_id', userId).order('position', { ascending: true }),
-        supabase.from('habit_logs').select('*').eq('user_id', userId).eq('date', today)
-      ])
-      if (todoData) setTodos(todoData)
-      if (habitData) setHabits(habitData)
-      if (logData) setLogs(logData)
+      const [{ data: todoData }, { data: completedData }, { data: habitData }, { data: logData }] = await Promise.all([
+  supabase.from('todos').select('*').eq('user_id', userId).eq('is_completed', false).order('position', { ascending: true }),
+  supabase.from('todos').select('*').eq('user_id', userId).eq('is_completed', true).order('completed_at', { ascending: false }).limit(10),
+  supabase.from('habits').select('*').eq('user_id', userId).order('position', { ascending: true }),
+  supabase.from('habit_logs').select('*').eq('user_id', userId).eq('date', today)
+])
+if (todoData) setTodos(todoData)
+if (completedData) setCompletedTodos(completedData)
+if (habitData) setHabits(habitData)
+if (logData) setLogs(logData)
     }
     fetchAll()
   }, [userId])
@@ -64,6 +67,28 @@ export default function Home({ userId }: { userId: string }) {
           </div>
         </div>
       )}
+      
+      {/* 완료된 할 일 */}
+{completedTodos.length > 0 && (
+  <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
+    <p className="text-sm font-bold text-gray-400 mb-3">✅ 완료된 할 일</p>
+    <div className="space-y-2">
+      {completedTodos.map(todo => (
+        <div key={todo.id} className="flex items-center gap-3">
+          <div className="w-2 h-2 rounded-full bg-green-400 flex-shrink-0" />
+          <span className="flex-1 text-sm text-gray-400 line-through">
+  {todo.title}
+  {todo.completed_at && (
+    <span className="text-xs text-gray-300 ml-1">
+      ({new Date(todo.completed_at).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })})
+    </span>
+  )}
+</span>
+        </div>
+      ))}
+    </div>
+  </div>
+)}
 
       {habits.length > 0 && (
         <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
@@ -81,8 +106,16 @@ export default function Home({ userId }: { userId: string }) {
                 <div key={habit.id} className="flex items-center gap-3">
                   <span className="text-lg">{habit.icon}</span>
                   <span className={`flex-1 text-sm ${done ? 'text-gray-400 line-through' : 'text-gray-700'}`}>
-                    {habit.title}
-                  </span>
+  {habit.title}
+  {done && (() => {
+    const log = logs.find((l: any) => l.habit_id === habit.id)
+    return log?.created_at ? (
+      <span className="text-xs text-gray-300 ml-1">
+        ({new Date(log.created_at).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })})
+      </span>
+    ) : null
+  })()}
+</span>
                   <span>{done ? '✅' : '⬜'}</span>
                 </div>
               )
